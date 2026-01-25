@@ -207,39 +207,51 @@ class TVStationService:
             else:
                 self.current_meta = {"title": "Commercial Break", "show": "---", "percent": 0}
 
-            # --- NEW: BUMPER SEQUENCE ---
+            # --- BUMPER SEQUENCE ---
             if current_content['type'] == 'break':
                 print("--- GENERATING UP NEXT BUMPER ---")
+                
                 # 1. Fetch upcoming shows & total commercial time
                 comm_duration = random.randint(current_content['min'], current_content['max'])
                 upcoming_shows = self.scheduler.get_upcoming_durations(limit=3)
 
-                # 2. Generate the transparent overlay
-                temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
-                self.gfx_engine.generate_transparent_bumper(
-                    upcoming_shows, 
-                    comm_duration, 
-                    output_path=temp_overlay
-                )
-
-                # 3. Play the Animated Background
+                # 2. START PLAYING THE VIDEO FIRST
                 bumper_bg = os.path.join(app_dir, "assets", "up_next_bg.mp4")
                 media = vlc_instance.media_new(bumper_bg)
                 player.set_media(media)
                 player.play()
-                time.sleep(0.5)
+                
+                # Wait 0.5s for VLC to decode the first frame so it knows the resolution
+                time.sleep(0.5) 
 
-                # 4. Apply the Text Overlay using VLC's native logo filter
-                player.video_set_logo_int(vlc.VideoLogoOption.Enable, 1)
-                player.video_set_logo_string(vlc.VideoLogoOption.File, temp_overlay)
-                player.video_set_logo_int(vlc.VideoLogoOption.Opacity, 255)
+                # 3. ASK VLC FOR THE EXACT VIDEO RESOLUTION
+                bg_width, bg_height = 1920, 1080 # Fallback
+                vlc_size = player.video_get_size(0) # 0 = video track 0
+                if vlc_size and vlc_size[0] > 0 and vlc_size[1] > 0:
+                    bg_width, bg_height = vlc_size[0], vlc_size[1]
+                    print(f"DEBUG: Auto-detected video resolution as {bg_width}x{bg_height}")
+
+                # 4. GENERATE THE OVERLAY TO MATCH VLC
+                temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
+                self.gfx_engine.generate_transparent_bumper(
+                    upcoming_shows, 
+                    comm_duration, 
+                    output_path=temp_overlay,
+                    target_width=bg_width,   # <--- Perfect fit
+                    target_height=bg_height  # <--- Perfect fit
+                )
+
+                # 5. Apply the Text Overlay
+                player.video_set_logo_int(0, 1) # Enable
+                player.video_set_logo_string(1, temp_overlay) # File
+                player.video_set_logo_int(6, 255) # Opacity
 
                 # Wait for bumper video to end
                 while player.get_state() != vlc.State.Ended and self.running:
                     time.sleep(0.1)
 
-                # 5. CLEAR THE OVERLAY before commercials start
-                player.video_set_logo_int(vlc.VideoLogoOption.Enable, 0)
+                # 6. CLEAR THE OVERLAY before commercials start
+                player.video_set_logo_int(0, 0)
                 print("--- COMMERCIAL BREAK STARTING ---")
             # ----------------------------
 

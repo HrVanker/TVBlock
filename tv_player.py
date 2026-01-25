@@ -98,9 +98,7 @@ def main(parent_gui):
     comm_manager = CommercialManager(config["paths"]["commercials"])
 
     # Define your asset paths here
-    BUMPER_BG_VIDEO = os.path.join(BASE_DIR, "assets", "up_next_bg.mp4")
-    TEMP_OVERLAY_IMG = os.path.join(BASE_DIR, "assets", "temp_overlay.png")
-    BUG_FRAMES_DIR = os.path.join(BASE_DIR, "assets", "bug_frames")
+    
 
 
     # --- 3. MAIN PLAYBACK LOOP ---
@@ -145,39 +143,6 @@ def main(parent_gui):
                 update_history(current_video_state["show"], current_video_state["path"], "watched", 100)
 
             elif content['type'] == 'break':
-                print("--- GENERATING UP NEXT BUMPER ---")
-                comm_duration = random.randint(content['min'], content['max'])
-                
-                # Get upcoming shows
-                upcoming_shows = schedule.get_upcoming_durations(limit=3)
-
-                # Generate the text overlay
-                gfx_engine.generate_transparent_bumper(
-                    upcoming_shows, 
-                    comm_duration, 
-                    output_path=TEMP_OVERLAY_IMG
-                )
-
-                # Play the Animated Background
-                print("--- PLAYING BUMPER ---")
-                media = vlc_instance.media_new(BUMPER_BG_VIDEO)
-                player.set_media(media)
-                player.play()
-                time.sleep(0.5) # Wait for video to initialize
-
-                # Apply the Text Overlay
-                player.video_set_logo_int(vlc.VideoLogoOption.enable, 1)
-                player.video_set_logo_string(vlc.VideoLogoOption.file, TEMP_OVERLAY_IMG)
-                player.video_set_logo_int(vlc.VideoLogoOption.x, 0)
-                player.video_set_logo_int(vlc.VideoLogoOption.y, 0)
-                player.video_set_logo_int(vlc.VideoLogoOption.opacity, 255)
-
-                while player.get_state() != vlc.State.Ended:
-                    time.sleep(0.5)
-
-                # CLEAR THE OVERLAY
-                player.video_set_logo_int(vlc.VideoLogoOption.enable, 0)
-
                 # Play the Commercials
                 print("--- COMMERCIAL BREAK ---")
                 current_video_state["path"] = None 

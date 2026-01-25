@@ -7,43 +7,60 @@ class GraphicsEngine:
         self.font_path = font_path
         self.width, self.height = resolution
 
-    def generate_transparent_bumper(self, upcoming_shows, commercial_duration_sec, output_path="temp_overlay.png"):
+    def generate_transparent_bumper(self, upcoming_shows, commercial_duration_sec, output_path="temp_overlay.png", target_width=1920, target_height=1080):
         """
-        Creates a 1920x1080 transparent image with the schedule text.
+        Creates a responsive transparent image that perfectly fits the target resolution.
         """
-        # 1. Create a fully transparent canvas (RGBA with 0 alpha)
-        img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))
+        # 1. Create canvas matching the video size
+        img = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
-        # 2. Setup Fonts
-        # (Make sure to use a font path that exists on your system)
-        header_font = ImageFont.truetype(self.font_path, 60)
-        show_font = ImageFont.truetype(self.font_path, 40)
-        time_font = ImageFont.truetype(self.font_path, 35)
+        # 2. RESPONSIVE MATH (Calculate sizes as % of screen height/width)
+        # Margins: 10% from the edges
+        SAFE_X = int(target_width * 0.10)
+        SAFE_Y = int(target_height * 0.10)
+
+        # Fonts: Sized relative to screen height
+        header_size = int(target_height * 0.046) 
+        show_size = int(target_height * 0.032)
+        time_size = int(target_height * 0.027)
+
+        header_font = ImageFont.truetype(self.font_path, header_size)
+        show_font = ImageFont.truetype(self.font_path, show_size)
+        time_font = ImageFont.truetype(self.font_path, time_size)
+
+        # Spacing:
+        line_height = int(target_height * 0.065)
+        tab_indent = int(target_width * 0.10) # Space between Time and Show Name
 
         # 3. Draw the Header
         header_text = "WE'LL BE RIGHT BACK"
-        draw.text((150, 150), header_text, font=header_font, fill=(255, 255, 255, 255))
+        draw.text((SAFE_X, SAFE_Y), header_text, font=header_font, fill=(255, 255, 255, 255))
 
         # 4. Calculate Times
         current_time = datetime.datetime.now()
         start_time = current_time + datetime.timedelta(seconds=commercial_duration_sec)
 
-        y_offset = 300
-        draw.text((150, y_offset), "UP NEXT:", font=show_font, fill=(200, 200, 200, 255))
-        y_offset += 60
+        # 5. Draw "UP NEXT:"
+        y_offset = SAFE_Y + (line_height * 2)
+        draw.text((SAFE_X, y_offset), "UP NEXT:", font=show_font, fill=(200, 200, 200, 255))
+        y_offset += line_height
 
+        # 6. Draw Shows
         for show_name, duration in upcoming_shows[:3]:
             time_str = start_time.strftime("%I:%M %p").lstrip("0") 
+
+            # Truncation for very long names
+            max_chars = 40
+            display_name = (show_name[:max_chars] + '...') if len(show_name) > max_chars else show_name
+
+            # Draw Time
+            draw.text((SAFE_X, y_offset), time_str, font=time_font, fill=(255, 200, 50, 255))
             
-            # Draw Time and Show Name
-            draw.text((150, y_offset), time_str, font=time_font, fill=(255, 200, 0, 255))
-            draw.text((400, y_offset), show_name, font=show_font, fill=(255, 255, 255, 255))
+            # Draw Show Name (Indented)
+            draw.text((SAFE_X + tab_indent, y_offset), display_name, font=show_font, fill=(255, 255, 255, 255))
 
-            # Advance clock for next loop
             start_time += datetime.timedelta(seconds=duration)
-            y_offset += 80
+            y_offset += line_height
 
-        # 5. Save as PNG to preserve transparency
         img.save(output_path, "PNG")
-        return output_path
