@@ -253,7 +253,7 @@ class TVStationService:
                         self.gui.root.after(0, self.bug_gui.show)
                         bug_active = True # Prevents it from triggering again for this video 
                     
-                    if bug_active and elapsed >= 15:
+                    if bug_active and elapsed >= 35:
                         self.gui.root.after(0, self.bug_gui.hide) # Thread-safe hide
                         bug_active = False
                         last_bug_time = current_time
@@ -631,12 +631,6 @@ class StationManagerApp:
     def toggle_station(self):
         # 1. Check the STATION'S running status, not the GUI's
         if not self.station.running:
-            
-            # --- NEW: INITIALIZE THE GIF ON THE MAIN THREAD ---
-            # We attach it to 'self.station' so the background loop can access it later
-            gif_path = os.path.join(app_dir, "assets", "output.gif")
-            self.station.bug_gui = BugOverlay(self.root, gif_path) 
-            # --------------------------------------------------
 
             # 2. Create the permanent black window for the video
             self.video_window = tk.Toplevel(self.root)

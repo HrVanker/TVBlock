@@ -139,33 +139,7 @@ def main(parent_gui):
                 bug_gui = BugOverlay(parent_gui, CHANNEL_BUG_GIF)
                 print("DEBUG: GUI loaded. Entering playback loop.", flush=True)
 
-                while player.get_state() != vlc.State.Ended:
-                    current_time = time.time()
-                    elapsed = current_time - last_bug_time
-                    
-                    # 2. Use thread-safe parent_gui.after(0, ...) to trigger the GUI changes
-                    if elapsed >= 15 and not bug_active:
-                        print(">> Displaying Floating GIF Bug")
-                        parent_gui.after(0, bug_gui.show)
-                        bug_active = True
-                        last_bug_time = current_time 
-                    
-                    if bug_active and elapsed >= 15:
-                        print(">> Hiding Floating GIF Bug")
-                        parent_gui.after(0, bug_gui.hide)
-                        bug_active = False
-                        last_bug_time = current_time 
-
-                    # --- NEW: Keep the Tkinter GUI alive and animating ---
-                    bug_gui.root.update()
-
-                    # Drop sleep to 0.02 so the loop runs fast enough for 30fps GIF playback
-                    time.sleep(0.02) 
-
-                    # --- NEW: Clean up GUI when the TV show ends ---
-                    bug_gui.destroy()
-
-                    time.sleep(0.5)
+                
 
                 # Save history when show finishes normally
                 update_history(current_video_state["show"], current_video_state["path"], "watched", 100)
