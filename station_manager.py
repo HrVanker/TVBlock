@@ -214,8 +214,8 @@ class TVStationService:
                 time.sleep(2.0)
 
                 # We use self.gui.root because that is the master window for the app
-                gif_path = os.path.join(app_dir, "assets", "my_logo.gif")
-                bug_gui = BugOverlay(self.gui.root, gif_path)
+                #gif_path = os.path.join(app_dir, "assets", "my_logo.gif")
+                #bug_gui = BugOverlay(self.gui.root, gif_path)
                 
                 # Timers for this specific video
                 start_time = time.time()
@@ -250,12 +250,11 @@ class TVStationService:
                     elapsed = current_time - last_bug_time
 
                     if elapsed >= 5 and not bug_active:
-                        self.gui.root.after(0, bug_gui.show) # Thread-safe display
-                        bug_active = True
-                        last_bug_time = current_time 
+                        self.gui.root.after(0, self.bug_gui.show)
+                        bug_active = True # Prevents it from triggering again for this video 
                     
                     if bug_active and elapsed >= 15:
-                        self.gui.root.after(0, bug_gui.hide) # Thread-safe hide
+                        self.gui.root.after(0, self.bug_gui.hide) # Thread-safe hide
                         bug_active = False
                         last_bug_time = current_time
                     
@@ -287,7 +286,7 @@ class TVStationService:
                         print(f"Playback Error on: {filepath}")
                         break
 
-                    self.gui.root.after(0, bug_gui.destroy)
+                    #self.gui.root.after(0, self.bug_gui.destroy)
                         
                     time.sleep(0.5)
 
@@ -630,32 +629,40 @@ class StationManagerApp:
                 self.ep_tree.focus(item_id) # Set focus back to item
 
     def toggle_station(self):
+        # 1. Check the STATION'S running status, not the GUI's
         if not self.station.running:
-            # 1. Create a permanent black window for the video
+            
+            # --- NEW: INITIALIZE THE GIF ON THE MAIN THREAD ---
+            # We attach it to 'self.station' so the background loop can access it later
+            gif_path = os.path.join(app_dir, "assets", "my_logo.gif")
+            self.station.bug_gui = BugOverlay(self.root, gif_path) 
+            # --------------------------------------------------
+
+            # 2. Create the permanent black window for the video
             self.video_window = tk.Toplevel(self.root)
             self.video_window.title("TV Station Broadcast")
             self.video_window.configure(bg="black")
-            
-            # 2. Make it Fullscreen
             self.video_window.attributes("-fullscreen", True)
             
-            # 3. Handle closing the window manually
-            # (If user hits Escape or closes window, stop station)
             self.video_window.bind("<Escape>", lambda e: self.toggle_station())
             self.video_window.protocol("WM_DELETE_WINDOW", self.toggle_station)
-            
-            # 4. Force window creation to get the ID immediately
             self.video_window.update()
-            
-            # 5. Get the Window ID (HWND)
             window_id = self.video_window.winfo_id()
+
+            gif_path = os.path.join(app_dir, "assets", "my_logo.gif")
+            self.station.bug_gui = BugOverlay(self.video_window, gif_path)
             
-            # 6. Start Broadcast with this window
+            # 3. Start Broadcast with this window
             self.station.start_broadcast(window_id)
             self.btn_start.config(text="⏹ STOP STATION", bg="red")
         else:
             self.station.stop_broadcast()
             
+            # --- NEW: DESTROY THE GIF WHEN STATION STOPS ---
+            if hasattr(self.station, 'bug_gui'):
+                self.station.bug_gui.destroy()
+            # -----------------------------------------------
+
             # Destroy the video window if it exists
             if hasattr(self, 'video_window') and self.video_window:
                 self.video_window.destroy()

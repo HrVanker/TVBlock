@@ -231,14 +231,14 @@ def main(parent_gui):
         player.stop()
 
 class BugOverlay:
-    # We now pass the 'parent' (the Station Manager GUI) into the bug
     def __init__(self, parent, gif_path):
         self.parent = parent
-        
-        # Create a Toplevel window (a child of the main manager)
         self.top = tk.Toplevel(parent)
-        self.top.overrideredirect(True) # Remove borders
-        self.top.attributes("-topmost", True) # Keep above VLC
+        self.top.overrideredirect(True) 
+        
+        # --- NEW: Bind to the video window so it minimizes with it ---
+        self.top.transient(parent) 
+        self.top.attributes("-topmost", True) 
         self.top.config(bg='black')
         self.top.attributes('-transparentcolor', 'black')
 
@@ -246,32 +246,46 @@ class BugOverlay:
         screen_height = self.top.winfo_screenheight()
         self.top.geometry(f"+{screen_width - 250}+{screen_height - 250}")
 
+        # --- NEW: Pre-load the GIF and extract its actual timing ---
         self.gif = Image.open(gif_path)
-        self.frames = [ImageTk.PhotoImage(self.gif.copy().convert("RGBA"))]
-        self.total_frames = getattr(self.gif, 'n_frames', 1)
-        
+        self.frames = []
+        self.durations = []
+        try:
+            while True:
+                self.frames.append(ImageTk.PhotoImage(self.gif.copy().convert("RGBA")))
+                # Read the delay specific to this frame (default to 33ms if missing)
+                self.durations.append(self.gif.info.get('duration', 33)) 
+                self.gif.seek(len(self.frames))
+        except EOFError:
+            pass
+
+        self.total_frames = len(self.frames)
         self.lbl = tk.Label(self.top, image=self.frames[0], bg='black', borderwidth=0)
         self.lbl.pack()
         self.current_frame = 0
 
-        self.top.withdraw() # Start hidden
+        self.top.withdraw()
         self.is_visible = False
-        self.animate()
 
     def animate(self):
-        if self.is_visible:
-            self.current_frame = (self.current_frame + 1) % self.total_frames
-            if self.current_frame >= len(self.frames):
-                self.gif.seek(self.current_frame)
-                self.frames.append(ImageTk.PhotoImage(self.gif.copy().convert("RGBA")))
-            self.lbl.config(image=self.frames[self.current_frame])
+        if not self.is_visible: return
+
+        self.lbl.config(image=self.frames[self.current_frame])
         
-        # The main Station Manager loop will handle this timer automatically
-        self.top.after(33, self.animate)
+        # --- NEW: Play once and stop ---
+        if self.current_frame < self.total_frames - 1:
+            delay = self.durations[self.current_frame]
+            self.current_frame += 1
+            self.top.after(delay, self.animate)
+        else:
+            # Reached the end of the GIF!
+            self.hide()
 
     def show(self):
+        self.current_frame = 0 # Reset to beginning
         self.is_visible = True
         self.top.deiconify()
+        self.animate() # Start playing
 
     def hide(self):
         self.is_visible = False
