@@ -133,24 +133,35 @@ def main():
                 start_time = time.time()
                 last_bug_time = start_time
                 bug_active = False
+                CHANNEL_BUG_GIF = os.path.join(BASE_DIR, "assets", "my_logo.gif")
+                bug_gui = BugOverlay(CHANNEL_BUG_GIF)
 
                 while player.get_state() != vlc.State.Ended:
                     current_time = time.time()
 
-                    CHANNEL_BUG_GIF = os.path.join(BASE_DIR, "assets", "my_logo.gif")                    
+                                        
                     # Turn bug ON every 10 minutes (For testing: 5 seconds)
                     if (current_time - last_bug_time) >= 5 and not bug_active:
-                        print(">> Displaying Floating GIF Bug")
-                        toggle_channel_bug(CHANNEL_BUG_GIF, enable=True)
+                        print(">> Displaying Floating GIF Bug", flush=True)
+                        bug_gui.show()
                         bug_active = True
                         last_bug_time = current_time 
                     
-                    # Turn bug OFF 
+                    # Turn bug OFF after 15 seconds
                     if bug_active and (current_time - last_bug_time) >= 15:
-                        print(">> Hiding Floating GIF Bug")
-                        toggle_channel_bug(CHANNEL_BUG_GIF, enable=False)
+                        print(">> Hiding Floating GIF Bug", flush=True)
+                        bug_gui.hide()
                         bug_active = False
-                        last_bug_time = current_time
+                        last_bug_time = current_time 
+
+                    # --- NEW: Keep the Tkinter GUI alive and animating ---
+                    bug_gui.root.update()
+
+                    # Drop sleep to 0.02 so the loop runs fast enough for 30fps GIF playback
+                    time.sleep(0.02) 
+
+                    # --- NEW: Clean up GUI when the TV show ends ---
+                    bug_gui.destroy()
 
                     time.sleep(0.5)
 
@@ -220,25 +231,21 @@ def main():
 class BugOverlay:
     def __init__(self, gif_path):
         self.root = tk.Tk()
-        self.root.overrideredirect(True) # Remove window borders
-        self.root.attributes("-topmost", True) # Keep it above VLC
-        
-        # Make the background transparent (using black as the chroma-key)
+        self.root.overrideredirect(True) # Remove borders
+        self.root.attributes("-topmost", True) # Keep above VLC
         self.root.config(bg='black')
         self.root.attributes('-transparentcolor', 'black')
 
-        # Position it in the bottom right corner
+        # Position bottom right
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        # Adjust '250' to move it further/closer to the edges
         self.root.geometry(f"+{screen_width - 250}+{screen_height - 250}")
 
-        # Load GIF frames
+        # Load GIF
         self.gif = Image.open(gif_path)
         self.frames = []
         try:
             while True:
-                # Convert frame to Tkinter format
                 self.frames.append(ImageTk.PhotoImage(self.gif.copy().convert("RGBA")))
                 self.gif.seek(len(self.frames))
         except EOFError:
@@ -247,9 +254,33 @@ class BugOverlay:
         self.lbl = tk.Label(self.root, image=self.frames[0], bg='black', borderwidth=0)
         self.lbl.pack()
         self.current_frame = 0
-        self.is_running = True
 
+        # Start hidden
+        self.root.withdraw()
+        self.is_visible = False
+
+        # Start the animation clock
         self.animate()
+
+    def animate(self):
+        # Only advance frames if the bug is visible
+        if self.is_visible:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.lbl.config(image=self.frames[self.current_frame])
+        
+        # Schedule the next tick (approx 30fps)
+        self.root.after(33, self.animate)
+
+    def show(self):
+        self.is_visible = True
+        self.root.deiconify()
+
+    def hide(self):
+        self.is_visible = False
+        self.root.withdraw()
+
+    def destroy(self):
+        self.root.destroy()
 
     def animate(self):
         if self.is_running:
