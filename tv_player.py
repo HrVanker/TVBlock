@@ -134,7 +134,10 @@ def main():
                 last_bug_time = start_time
                 bug_active = False
                 CHANNEL_BUG_GIF = os.path.join(BASE_DIR, "assets", "my_logo.gif")
+                print("DEBUG: Video started. Loading GUI...", flush=True)
+                # This is likely where your code was freezing before!
                 bug_gui = BugOverlay(CHANNEL_BUG_GIF)
+                print("DEBUG: GUI loaded. Entering playback loop.", flush=True)
 
                 while player.get_state() != vlc.State.Ended:
                     current_time = time.time()
@@ -230,42 +233,42 @@ def main():
 
 class BugOverlay:
     def __init__(self, gif_path):
+        print("DEBUG: Initializing Tkinter Window...", flush=True)
         self.root = tk.Tk()
         self.root.overrideredirect(True) # Remove borders
         self.root.attributes("-topmost", True) # Keep above VLC
         self.root.config(bg='black')
         self.root.attributes('-transparentcolor', 'black')
 
-        # Position bottom right
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         self.root.geometry(f"+{screen_width - 250}+{screen_height - 250}")
 
-        # Load GIF
+        print(f"DEBUG: Opening GIF file: {gif_path}", flush=True)
         self.gif = Image.open(gif_path)
-        self.frames = []
-        try:
-            while True:
-                self.frames.append(ImageTk.PhotoImage(self.gif.copy().convert("RGBA")))
-                self.gif.seek(len(self.frames))
-        except EOFError:
-            pass
-
+        
+        # ONLY LOAD THE FIRST FRAME to prevent the freeze
+        self.frames = [ImageTk.PhotoImage(self.gif.copy().convert("RGBA"))]
+        self.total_frames = getattr(self.gif, 'n_frames', 1)
+        
         self.lbl = tk.Label(self.root, image=self.frames[0], bg='black', borderwidth=0)
         self.lbl.pack()
         self.current_frame = 0
 
-        # Start hidden
         self.root.withdraw()
         self.is_visible = False
-
-        # Start the animation clock
         self.animate()
+        print("DEBUG: GUI Initialized successfully.", flush=True)
 
     def animate(self):
-        # Only advance frames if the bug is visible
         if self.is_visible:
-            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.current_frame = (self.current_frame + 1) % self.total_frames
+            
+            # Lazy Load: If we haven't converted this frame yet, do it now
+            if self.current_frame >= len(self.frames):
+                self.gif.seek(self.current_frame)
+                self.frames.append(ImageTk.PhotoImage(self.gif.copy().convert("RGBA")))
+
             self.lbl.config(image=self.frames[self.current_frame])
         
         # Schedule the next tick (approx 30fps)
@@ -280,17 +283,6 @@ class BugOverlay:
         self.root.withdraw()
 
     def destroy(self):
-        self.root.destroy()
-
-    def animate(self):
-        if self.is_running:
-            self.current_frame = (self.current_frame + 1) % len(self.frames)
-            self.lbl.config(image=self.frames[self.current_frame])
-            # Assuming ~30fps for the GIF (33ms delay)
-            self.root.after(33, self.animate)
-
-    def close(self):
-        self.is_running = False
         self.root.destroy()
 
 # Global variable to hold our window
