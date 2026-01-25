@@ -32,7 +32,7 @@
     <Compile Include="vlc.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="assets\my_logo.gif" />
+    <Content Include="assets\output.gif" />
     <Content Include="station_config.json" />
     <Content Include="station_history.json" />
   </ItemGroup>

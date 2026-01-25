@@ -28,12 +28,6 @@
     },
     "schedule_block": [
         {
-            "type": "rotate",
-            "count": 1,
-            "random": true,
-            "group": "Star_Trek"
-        },
-        {
             "type": "anchor",
             "count": 1,
             "random": true,

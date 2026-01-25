@@ -634,7 +634,7 @@ class StationManagerApp:
             
             # --- NEW: INITIALIZE THE GIF ON THE MAIN THREAD ---
             # We attach it to 'self.station' so the background loop can access it later
-            gif_path = os.path.join(app_dir, "assets", "my_logo.gif")
+            gif_path = os.path.join(app_dir, "assets", "output.gif")
             self.station.bug_gui = BugOverlay(self.root, gif_path) 
             # --------------------------------------------------
 
@@ -649,7 +649,7 @@ class StationManagerApp:
             self.video_window.update()
             window_id = self.video_window.winfo_id()
 
-            gif_path = os.path.join(app_dir, "assets", "my_logo.gif")
+            gif_path = os.path.join(app_dir, "assets", "output.gif")
             self.station.bug_gui = BugOverlay(self.video_window, gif_path)
             
             # 3. Start Broadcast with this window

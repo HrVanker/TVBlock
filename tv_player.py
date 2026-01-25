@@ -133,7 +133,7 @@ def main(parent_gui):
                 start_time = time.time()
                 last_bug_time = start_time
                 bug_active = False
-                CHANNEL_BUG_GIF = os.path.join(BASE_DIR, "assets", "my_logo.gif")
+                CHANNEL_BUG_GIF = os.path.join(BASE_DIR, "assets", "output.gif")
                 print("DEBUG: Video started. Loading GUI...", flush=True)
                 # This is likely where your code was freezing before!
                 bug_gui = BugOverlay(parent_gui, CHANNEL_BUG_GIF)
@@ -242,12 +242,22 @@ class BugOverlay:
         self.top.config(bg='black')
         self.top.attributes('-transparentcolor', 'black')
 
+        self.gif = Image.open(gif_path)
+        gif_width, gif_height = self.gif.size
+
+        # 2. CALCULATE EXACT CORNER POSITION
         screen_width = self.top.winfo_screenwidth()
         screen_height = self.top.winfo_screenheight()
-        self.top.geometry(f"+{screen_width - 250}+{screen_height - 250}")
+
+        PAD_X = 50 
+        PAD_Y = 50 
+
+        pos_x = screen_width - gif_width - PAD_X
+        pos_y = screen_height - gif_height - PAD_Y
+
+        self.top.geometry(f"+{pos_x}+{pos_y}")
 
         # --- NEW: Pre-load the GIF and extract its actual timing ---
-        self.gif = Image.open(gif_path)
         self.frames = []
         self.durations = []
         try:
