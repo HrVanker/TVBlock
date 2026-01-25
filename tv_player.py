@@ -70,7 +70,7 @@ def update_history(show_name, episode_path, status, percent):
     except Exception as e:
         print(f"DEBUG: Error writing file: {e}")
 
-def main():
+def main(parent_gui):
     print("\n[ TV Station is LIVE ]")
     print("Press Ctrl+C to stop the station safely.\n")
 
@@ -136,24 +136,23 @@ def main():
                 CHANNEL_BUG_GIF = os.path.join(BASE_DIR, "assets", "my_logo.gif")
                 print("DEBUG: Video started. Loading GUI...", flush=True)
                 # This is likely where your code was freezing before!
-                bug_gui = BugOverlay(CHANNEL_BUG_GIF)
+                bug_gui = BugOverlay(parent_gui, CHANNEL_BUG_GIF)
                 print("DEBUG: GUI loaded. Entering playback loop.", flush=True)
 
                 while player.get_state() != vlc.State.Ended:
                     current_time = time.time()
-
-                                        
-                    # Turn bug ON every 10 minutes (For testing: 5 seconds)
-                    if (current_time - last_bug_time) >= 5 and not bug_active:
-                        print(">> Displaying Floating GIF Bug", flush=True)
-                        bug_gui.show()
+                    elapsed = current_time - last_bug_time
+                    
+                    # 2. Use thread-safe parent_gui.after(0, ...) to trigger the GUI changes
+                    if elapsed >= 5 and not bug_active:
+                        print(">> Displaying Floating GIF Bug")
+                        parent_gui.after(0, bug_gui.show)
                         bug_active = True
                         last_bug_time = current_time 
                     
-                    # Turn bug OFF after 15 seconds
-                    if bug_active and (current_time - last_bug_time) >= 15:
-                        print(">> Hiding Floating GIF Bug", flush=True)
-                        bug_gui.hide()
+                    if bug_active and elapsed >= 15:
+                        print(">> Hiding Floating GIF Bug")
+                        parent_gui.after(0, bug_gui.hide)
                         bug_active = False
                         last_bug_time = current_time 
 
@@ -232,58 +231,54 @@ def main():
         player.stop()
 
 class BugOverlay:
-    def __init__(self, gif_path):
-        print("DEBUG: Initializing Tkinter Window...", flush=True)
-        self.root = tk.Tk()
-        self.root.overrideredirect(True) # Remove borders
-        self.root.attributes("-topmost", True) # Keep above VLC
-        self.root.config(bg='black')
-        self.root.attributes('-transparentcolor', 'black')
-
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"+{screen_width - 250}+{screen_height - 250}")
-
-        print(f"DEBUG: Opening GIF file: {gif_path}", flush=True)
-        self.gif = Image.open(gif_path)
+    # We now pass the 'parent' (the Station Manager GUI) into the bug
+    def __init__(self, parent, gif_path):
+        self.parent = parent
         
-        # ONLY LOAD THE FIRST FRAME to prevent the freeze
+        # Create a Toplevel window (a child of the main manager)
+        self.top = tk.Toplevel(parent)
+        self.top.overrideredirect(True) # Remove borders
+        self.top.attributes("-topmost", True) # Keep above VLC
+        self.top.config(bg='black')
+        self.top.attributes('-transparentcolor', 'black')
+
+        screen_width = self.top.winfo_screenwidth()
+        screen_height = self.top.winfo_screenheight()
+        self.top.geometry(f"+{screen_width - 250}+{screen_height - 250}")
+
+        self.gif = Image.open(gif_path)
         self.frames = [ImageTk.PhotoImage(self.gif.copy().convert("RGBA"))]
         self.total_frames = getattr(self.gif, 'n_frames', 1)
         
-        self.lbl = tk.Label(self.root, image=self.frames[0], bg='black', borderwidth=0)
+        self.lbl = tk.Label(self.top, image=self.frames[0], bg='black', borderwidth=0)
         self.lbl.pack()
         self.current_frame = 0
 
-        self.root.withdraw()
+        self.top.withdraw() # Start hidden
         self.is_visible = False
         self.animate()
-        print("DEBUG: GUI Initialized successfully.", flush=True)
 
     def animate(self):
         if self.is_visible:
             self.current_frame = (self.current_frame + 1) % self.total_frames
-            
-            # Lazy Load: If we haven't converted this frame yet, do it now
             if self.current_frame >= len(self.frames):
                 self.gif.seek(self.current_frame)
                 self.frames.append(ImageTk.PhotoImage(self.gif.copy().convert("RGBA")))
-
             self.lbl.config(image=self.frames[self.current_frame])
         
-        # Schedule the next tick (approx 30fps)
-        self.root.after(33, self.animate)
+        # The main Station Manager loop will handle this timer automatically
+        self.top.after(33, self.animate)
 
     def show(self):
         self.is_visible = True
-        self.root.deiconify()
+        self.top.deiconify()
 
     def hide(self):
         self.is_visible = False
-        self.root.withdraw()
+        self.top.withdraw()
 
     def destroy(self):
-        self.root.destroy()
+        self.top.destroy()
 
 # Global variable to hold our window
 current_bug_window = None
@@ -307,5 +302,5 @@ def toggle_channel_bug(gif_path, enable=True):
         current_bug_window.close()
         current_bug_window = None
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+ #   main()

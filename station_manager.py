@@ -2,6 +2,7 @@
 from tkinter import ttk, messagebox, Menu
 from rotation_editor import RotationEditor
 from tkinter import ttk, messagebox, Menu, filedialog
+import tv_player
 import json
 import os
 import sys
