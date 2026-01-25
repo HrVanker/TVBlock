@@ -30,12 +30,6 @@
         {
             "type": "anchor",
             "count": 1,
-            "random": true,
-            "show": "The Kids in the Hall"
-        },
-        {
-            "type": "anchor",
-            "count": 1,
             "show": "Batman - The Animated Series"
         },
         {

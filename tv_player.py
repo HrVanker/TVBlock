@@ -144,7 +144,7 @@ def main(parent_gui):
                     elapsed = current_time - last_bug_time
                     
                     # 2. Use thread-safe parent_gui.after(0, ...) to trigger the GUI changes
-                    if elapsed >= 5 and not bug_active:
+                    if elapsed >= 15 and not bug_active:
                         print(">> Displaying Floating GIF Bug")
                         parent_gui.after(0, bug_gui.show)
                         bug_active = True
