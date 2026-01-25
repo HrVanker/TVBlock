@@ -5,6 +5,9 @@ import json
 import random
 import datetime
 import glob
+import tkinter as tk
+from PIL import Image, ImageTk
+import threading
 from inventory_manager import InventoryManager
 from schedule_engine import ScheduleEngine
 from commercial_manager import CommercialManager
@@ -99,7 +102,6 @@ def main():
     TEMP_OVERLAY_IMG = os.path.join(BASE_DIR, "assets", "temp_overlay.png")
     BUG_FRAMES_DIR = os.path.join(BASE_DIR, "assets", "bug_frames")
 
-    ANIMATED_BUG_STRING = get_animated_logo_string(BUG_FRAMES_DIR, delay_ms=33)
 
     # --- 3. MAIN PLAYBACK LOOP ---
     try:
@@ -134,25 +136,23 @@ def main():
 
                 while player.get_state() != vlc.State.Ended:
                     current_time = time.time()
-                    
+
+                    CHANNEL_BUG_GIF = os.path.join(BASE_DIR, "assets", "my_logo.gif")                    
                     # Turn bug ON every 10 minutes (For testing: 5 seconds)
                     if (current_time - last_bug_time) >= 5 and not bug_active:
-                        print(">> Displaying Channel Bug")
-                        toggle_channel_bug(player, ANIMATED_BUG_STRING, enable=True)
+                        print(">> Displaying Floating GIF Bug")
+                        toggle_channel_bug(CHANNEL_BUG_GIF, enable=True)
                         bug_active = True
-                        last_bug_time = current_time # Reset timer for the "ON" duration
+                        last_bug_time = current_time 
                     
-                    # Turn bug OFF after 15 seconds
-                    if bug_active and (current_time - last_bug_time) >= 18:
-                        print(">> Hiding Channel Bug")
-                        toggle_channel_bug(player, ANIMATED_BUG_STRING, enable=False)
+                    # Turn bug OFF 
+                    if bug_active and (current_time - last_bug_time) >= 15:
+                        print(">> Hiding Floating GIF Bug")
+                        toggle_channel_bug(CHANNEL_BUG_GIF, enable=False)
                         bug_active = False
-                        last_bug_time = current_time # CRITICAL: Reset timer for the "OFF" duration
+                        last_bug_time = current_time
 
                     time.sleep(0.5)
-
-                # Failsafe: Turn bug off when show ends
-                toggle_channel_bug(player, ANIMATED_BUG_STRING, enable=False)
 
                 # Save history when show finishes normally
                 update_history(current_video_state["show"], current_video_state["path"], "watched", 100)
@@ -217,40 +217,72 @@ def main():
         
         player.stop()
 
-def get_animated_logo_string(frames_folder, delay_ms=100):
-    # Find all PNGs using an absolute path
-    search_path = os.path.join(frames_folder, "*.png")
-    frames = sorted(glob.glob(search_path))
-    
-    # DEBUG: Tell us exactly what it found in the console
-    print(f"DEBUG: Scanned {frames_folder}")
-    print(f"DEBUG: Found {len(frames)} logo frames.")
-    
-    if not frames:
-        return ""
+class BugOverlay:
+    def __init__(self, gif_path):
+        self.root = tk.Tk()
+        self.root.overrideredirect(True) # Remove window borders
+        self.root.attributes("-topmost", True) # Keep it above VLC
+        
+        # Make the background transparent (using black as the chroma-key)
+        self.root.config(bg='black')
+        self.root.attributes('-transparentcolor', 'black')
 
-    # Stitch them together using ABSOLUTE paths for VLC
-    animation_parts = [f"{os.path.abspath(frame).replace(os.sep, '/')},{delay_ms}" for frame in frames]
-    return ";".join(animation_parts)
+        # Position it in the bottom right corner
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        # Adjust '250' to move it further/closer to the edges
+        self.root.geometry(f"+{screen_width - 250}+{screen_height - 250}")
 
-def toggle_channel_bug(player, logo_string, enable=True):
+        # Load GIF frames
+        self.gif = Image.open(gif_path)
+        self.frames = []
+        try:
+            while True:
+                # Convert frame to Tkinter format
+                self.frames.append(ImageTk.PhotoImage(self.gif.copy().convert("RGBA")))
+                self.gif.seek(len(self.frames))
+        except EOFError:
+            pass
+
+        self.lbl = tk.Label(self.root, image=self.frames[0], bg='black', borderwidth=0)
+        self.lbl.pack()
+        self.current_frame = 0
+        self.is_running = True
+
+        self.animate()
+
+    def animate(self):
+        if self.is_running:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.lbl.config(image=self.frames[self.current_frame])
+            # Assuming ~30fps for the GIF (33ms delay)
+            self.root.after(33, self.animate)
+
+    def close(self):
+        self.is_running = False
+        self.root.destroy()
+
+# Global variable to hold our window
+current_bug_window = None
+
+def toggle_channel_bug(gif_path, enable=True):
     """
-    Overlays the animated logo. 
-    logo_string should be the pre-compiled VLC animation string.
+    Spawns or destroys the floating Tkinter GIF window.
     """
-    if enable and logo_string:
-        # 1 = Enable
-        player.video_set_logo_int(vlc.VideoLogoOption.enable, 1)
-        # Pass the massive string of frames to VLC
-        player.video_set_logo_string(vlc.VideoLogoOption.file, logo_string)
-        # Position: 10 = Bottom Right
-        player.video_set_logo_int(vlc.VideoLogoOption.position, 10)
-        # Opacity (0-255)
-        player.video_set_logo_int(vlc.VideoLogoOption.opacity, 200)
-        # Tell VLC to loop the animation indefinitely
-        player.video_set_logo_int(vlc.VideoLogoOption.repeat, -1)
-    else:
-        player.video_set_logo_int(vlc.VideoLogoOption.enable, 0)
+    global current_bug_window
+    
+    if enable and current_bug_window is None:
+        # Run the GUI in a separate thread so VLC doesn't freeze
+        def run_gui():
+            global current_bug_window
+            current_bug_window = BugOverlay(gif_path)
+            current_bug_window.root.mainloop()
+            
+        threading.Thread(target=run_gui, daemon=True).start()
+        
+    elif not enable and current_bug_window is not None:
+        current_bug_window.close()
+        current_bug_window = None
 
 if __name__ == "__main__":
     main()
