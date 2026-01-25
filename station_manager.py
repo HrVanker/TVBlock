@@ -250,8 +250,16 @@ class TVStationService:
                 while player.get_state() != vlc.State.Ended and self.running:
                     time.sleep(0.1)
 
-                # 6. CLEAR THE OVERLAY before commercials start
-                player.video_set_logo_int(0, 0)
+                # 6. CLEAR THE OVERLAY AND FLUSH BUFFER
+                # Turn off the logo
+                player.video_set_logo_int(0, 0) 
+                
+                # Explicitly stop the player so it drops the background video
+                player.stop() 
+                
+                # Give VLC 0.5 seconds to flush the graphic from the video memory
+                time.sleep(0.5) 
+                
                 print("--- COMMERCIAL BREAK STARTING ---")
             # ----------------------------
 

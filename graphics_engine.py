@@ -1,6 +1,7 @@
 import os
 from PIL import Image, ImageDraw, ImageFont
 import datetime
+import time
 
 class GraphicsEngine:
     def __init__(self, font_path="assets/comiclemon.ttf", resolution=(1920, 1080)):
@@ -21,11 +22,13 @@ class GraphicsEngine:
         SAFE_Y = int(target_height * 0.10)
 
         # Fonts: Sized relative to screen height
-        header_size = int(target_height * 0.046) 
-        show_size = int(target_height * 0.032)
-        time_size = int(target_height * 0.027)
+        header_size = int(target_height * 0.086) 
+        up_size = int(target_height * 0.066)
+        show_size = int(target_height * 0.046)
+        time_size = int(target_height * 0.037)
 
         header_font = ImageFont.truetype(self.font_path, header_size)
+        up_font = ImageFont.truetype(self.font_path, up_size)
         show_font = ImageFont.truetype(self.font_path, show_size)
         time_font = ImageFont.truetype(self.font_path, time_size)
 
@@ -35,32 +38,48 @@ class GraphicsEngine:
 
         # 3. Draw the Header
         header_text = "WE'LL BE RIGHT BACK"
-        draw.text((SAFE_X, SAFE_Y), header_text, font=header_font, fill=(255, 255, 255, 255))
+        draw.text((SAFE_X, SAFE_Y), header_text, font=header_font, fill=(255, 240, 120, 255), stroke_width=4, stroke_fill=(0,0,0,255))
 
         # 4. Calculate Times
         current_time = datetime.datetime.now()
         start_time = current_time + datetime.timedelta(seconds=commercial_duration_sec)
 
+        # --- NEW: Explicitly force the 3-letter abbreviation ---
+        # tm_isdst > 0 means Daylight Saving Time is active (Summer)
+        is_dst = time.localtime().tm_isdst > 0
+        tz_code = "PDT" if is_dst else "PST"
+
         # 5. Draw "UP NEXT:"
         y_offset = SAFE_Y + (line_height * 2)
-        draw.text((SAFE_X, y_offset), "UP NEXT:", font=show_font, fill=(200, 200, 200, 255))
-        y_offset += line_height
+        draw.text((SAFE_X, y_offset), "COMING UP NEXT:", font=up_font, fill=(255, 240, 120, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+        y_offset += (line_height *1.25)
 
         # 6. Draw Shows
         for show_name, duration in upcoming_shows[:3]:
-            time_str = start_time.strftime("%I:%M %p").lstrip("0") 
+            # Attach the hardcoded timezone code to the end
+            time_str = start_time.strftime("%I:%M %p").lstrip("0") + f"\n       {tz_code}"
 
-            # Truncation for very long names
             max_chars = 40
             display_name = (show_name[:max_chars] + '...') if len(show_name) > max_chars else show_name
 
             # Draw Time
-            draw.text((SAFE_X, y_offset), time_str, font=time_font, fill=(255, 200, 50, 255))
+            draw.text((SAFE_X + tab_indent, y_offset), time_str, font=time_font, fill=(255, 210, 50, 255),stroke_width=4, stroke_fill=(0,0,0,255))
             
             # Draw Show Name (Indented)
-            draw.text((SAFE_X + tab_indent, y_offset), display_name, font=show_font, fill=(255, 255, 255, 255))
+            draw.text((SAFE_X + (tab_indent*2), y_offset)," | " + display_name, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
 
             start_time += datetime.timedelta(seconds=duration)
-            y_offset += line_height
+            y_offset += (line_height * 2)
 
         img.save(output_path, "PNG")
+
+
+if __name__ == "__main__":
+    engine = GraphicsEngine()
+    fake_shows = [
+        ("Star Trek: The Next Generation", 1320),
+        ("Batman The Animated Series", 1320),
+        ("The Adventures of Pete & Pete", 1320)
+    ]
+    engine.generate_transparent_bumper(fake_shows, 150, "test_bumper.png")
+    print("Test bumper saved to test_bumper.png")
