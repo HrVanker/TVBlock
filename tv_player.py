@@ -88,7 +88,7 @@ def main():
         movie_map = {os.path.basename(m): m for m in movie_list} 
 
     # --- 2. SETUP ENGINES ---
-    vlc_instance = vlc.Instance('--no-xlib', '--fullscreen')
+    vlc_instance = vlc.Instance('--no-xlib', '--fullscreen', '--sub-filter=logo')
     player = vlc_instance.media_player_new()
 
     schedule = ScheduleEngine(library, list(movie_map.values()))
@@ -135,18 +135,19 @@ def main():
                 while player.get_state() != vlc.State.Ended:
                     current_time = time.time()
                     
-                    # Turn bug ON every 10 minutes (600 seconds)
-                    if (current_time - last_bug_time) >= 1 and not bug_active:
+                    # Turn bug ON every 10 minutes (For testing: 5 seconds)
+                    if (current_time - last_bug_time) >= 5 and not bug_active:
                         print(">> Displaying Channel Bug")
                         toggle_channel_bug(player, ANIMATED_BUG_STRING, enable=True)
                         bug_active = True
-                        last_bug_time = current_time # Reset timer
+                        last_bug_time = current_time # Reset timer for the "ON" duration
                     
                     # Turn bug OFF after 15 seconds
-                    if bug_active and (current_time - last_bug_time) >= 15:
+                    if bug_active and (current_time - last_bug_time) >= 18:
                         print(">> Hiding Channel Bug")
                         toggle_channel_bug(player, ANIMATED_BUG_STRING, enable=False)
                         bug_active = False
+                        last_bug_time = current_time # CRITICAL: Reset timer for the "OFF" duration
 
                     time.sleep(0.5)
 
@@ -229,7 +230,7 @@ def get_animated_logo_string(frames_folder, delay_ms=100):
         return ""
 
     # Stitch them together using ABSOLUTE paths for VLC
-    animation_parts = [f"{os.path.abspath(frame)},{delay_ms}" for frame in frames]
+    animation_parts = [f"{os.path.abspath(frame).replace(os.sep, '/')},{delay_ms}" for frame in frames]
     return ";".join(animation_parts)
 
 def toggle_channel_bug(player, logo_string, enable=True):
