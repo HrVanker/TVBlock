@@ -2,7 +2,7 @@
 from tkinter import ttk, messagebox, Menu
 from rotation_editor import RotationEditor
 from tkinter import ttk, messagebox, Menu, filedialog
-import tv_player
+from tv_player import BugOverlay
 import json
 import os
 import sys
@@ -213,6 +213,15 @@ class TVStationService:
 
                 time.sleep(2.0)
 
+                # We use self.gui.root because that is the master window for the app
+                gif_path = os.path.join(app_dir, "assets", "my_logo.gif")
+                bug_gui = BugOverlay(self.gui.root, gif_path)
+                
+                # Timers for this specific video
+                start_time = time.time()
+                last_bug_time = start_time
+                bug_active = False
+
                 # Only check resume for actual videos, not commercials
                 if current_content['type'] == 'video':
                     filename = os.path.basename(filepath)
@@ -237,6 +246,18 @@ class TVStationService:
                 # Monitor Loop
                 while self.running:
                     state = player.get_state()
+                    current_time = time.time()
+                    elapsed = current_time - last_bug_time
+
+                    if elapsed >= 5 and not bug_active:
+                        self.gui.root.after(0, bug_gui.show) # Thread-safe display
+                        bug_active = True
+                        last_bug_time = current_time 
+                    
+                    if bug_active and elapsed >= 15:
+                        self.gui.root.after(0, bug_gui.hide) # Thread-safe hide
+                        bug_active = False
+                        last_bug_time = current_time
                     
                     if duration > 0:
                         curr_time = player.get_time()
@@ -265,6 +286,8 @@ class TVStationService:
                     if state == vlc.State.Error:
                         print(f"Playback Error on: {filepath}")
                         break
+
+                    self.gui.root.after(0, bug_gui.destroy)
                         
                     time.sleep(0.5)
 
