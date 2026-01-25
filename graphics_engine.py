@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 import datetime
 
 class GraphicsEngine:
-    def __init__(self, font_path="arial.ttf", resolution=(1920, 1080)):
+    def __init__(self, font_path="assets/comiclemon.ttf", resolution=(1920, 1080)):
         self.font_path = font_path
         self.width, self.height = resolution
 

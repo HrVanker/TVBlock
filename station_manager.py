@@ -3,6 +3,8 @@ from tkinter import ttk, messagebox, Menu
 from rotation_editor import RotationEditor
 from tkinter import ttk, messagebox, Menu, filedialog
 from tv_player import BugOverlay
+from graphics_engine import GraphicsEngine
+import random
 import json
 import os
 import sys
@@ -73,7 +75,8 @@ class TVStationService:
         self.running = False
         self.skip_flag = False
         self.current_meta = {"title": "Offline", "show": "", "percent": 0}
-        
+        self.gfx_engine = GraphicsEngine()
+
         # Load Components
         self.load_components()
 
@@ -158,6 +161,7 @@ class TVStationService:
             "--no-video-title-show",
             "--mouse-hide-timeout=0",
             "--quiet",
+            "--sub-filter=logo",
             
             # INCREASED BUFFER: 10,000ms (10 seconds)
             # This fills RAM with 10s of video. If the drive locks up for 5s,
@@ -202,6 +206,42 @@ class TVStationService:
                 }
             else:
                 self.current_meta = {"title": "Commercial Break", "show": "---", "percent": 0}
+
+            # --- NEW: BUMPER SEQUENCE ---
+            if current_content['type'] == 'break':
+                print("--- GENERATING UP NEXT BUMPER ---")
+                # 1. Fetch upcoming shows & total commercial time
+                comm_duration = random.randint(current_content['min'], current_content['max'])
+                upcoming_shows = self.scheduler.get_upcoming_durations(limit=3)
+
+                # 2. Generate the transparent overlay
+                temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
+                self.gfx_engine.generate_transparent_bumper(
+                    upcoming_shows, 
+                    comm_duration, 
+                    output_path=temp_overlay
+                )
+
+                # 3. Play the Animated Background
+                bumper_bg = os.path.join(app_dir, "assets", "up_next_bg.mp4")
+                media = vlc_instance.media_new(bumper_bg)
+                player.set_media(media)
+                player.play()
+                time.sleep(0.5)
+
+                # 4. Apply the Text Overlay using VLC's native logo filter
+                player.video_set_logo_int(vlc.VideoLogoOption.Enable, 1)
+                player.video_set_logo_string(vlc.VideoLogoOption.File, temp_overlay)
+                player.video_set_logo_int(vlc.VideoLogoOption.Opacity, 255)
+
+                # Wait for bumper video to end
+                while player.get_state() != vlc.State.Ended and self.running:
+                    time.sleep(0.1)
+
+                # 5. CLEAR THE OVERLAY before commercials start
+                player.video_set_logo_int(vlc.VideoLogoOption.Enable, 0)
+                print("--- COMMERCIAL BREAK STARTING ---")
+            # ----------------------------
 
             # Play Chunk
             for filepath in current_playlist:
