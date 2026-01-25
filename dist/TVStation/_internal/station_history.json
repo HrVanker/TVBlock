@@ -34,6 +34,13 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2025-12-24 00:29:20.557922"
+        },
+        "The Kids in the Hall - 2x16 - #216.mkv": {
+            "show": "The Kids in the Hall",
+            "path": "D:\\Media\\Shows\\The Kids in the Hall\\Season 02\\The Kids in the Hall - 2x16 - #216.mkv",
+            "status": "partial",
+            "percent_watched": 5.39,
+            "last_played": "2026-01-24 14:51:21.967130"
         }
     }
 }
