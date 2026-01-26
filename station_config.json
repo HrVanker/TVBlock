@@ -7,9 +7,9 @@
     "settings": {
         "enable_movies": false,
         "movie_frequency": 20,
-        "commercial_frequency": 3,
+        "commercial_frequency": 4,
         "commercial_min_sec": 120,
-        "commercial_max_sec": 240
+        "commercial_max_sec": 378
     },
     "rotation_groups": {
         "90s_Kids": [
@@ -29,6 +29,12 @@
     "schedule_block": [
         {
             "type": "anchor",
+            "count": 2,
+            "random": true,
+            "show": "The Simpsons"
+        },
+        {
+            "type": "anchor",
             "count": 1,
             "show": "Batman - The Animated Series"
         },
@@ -39,14 +45,26 @@
             "group": "90s_Kids"
         },
         {
-            "type": "anchor",
-            "count": 2,
-            "show": "The Simpsons"
+            "type": "rotate",
+            "count": 1,
+            "random": true,
+            "group": "Star_Trek"
+        },
+        {
+            "type": "rotate",
+            "count": 1,
+            "random": true,
+            "group": "Comedy"
         },
         {
             "type": "anchor",
             "count": 1,
             "show": "The X-Files"
+        },
+        {
+            "type": "anchor",
+            "count": 1,
+            "show": "Twin Peaks"
         }
     ],
     "blacklist": [
