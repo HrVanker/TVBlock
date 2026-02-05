@@ -176,12 +176,19 @@ class TVStationService:
     def _broadcast_loop(self):
         import platform
         
-        # --- VLC SETUP (Single Player) ---
+        # --- VLC SETUP ---
         vlc_args = [
             "--no-video-title-show", "--quiet", 
             "--file-caching=10000", "--network-caching=10000",
-            "--sub-filter=logo" # <--- IMPORTANT: Enables the Logo Engine
+            "--sub-filter=logo",    # Enable Filter
+            "--logo-opacity=0",     # Start Invisible
+            "--logo-x=50",          # Set X Global
+            "--logo-y=50",          # Set Y Global
+            "--logo-position=10"    # Set Position Global (Bottom-Right)
         ]
+        if hasattr(self, 'logo_string') and self.logo_string:
+            vlc_args.append(f"--logo-file={self.logo_string}")
+
         vlc_instance = vlc.Instance(vlc_args)
         player = vlc_instance.media_player_new()
         player.set_hwnd(self.window_id)
@@ -189,6 +196,14 @@ class TVStationService:
         while self.running:
             current_content = self.scheduler.get_next_item()
             current_playlist = self._prepare_playlist(current_content)
+            
+            # Update GUI Metadata
+            if current_content['type'] == 'video':
+                show_title = current_content.get('show', 'Unknown Show')
+                ep_title = os.path.basename(current_content.get('path', 'Unknown Episode'))
+                self.current_meta.update({"show": show_title, "title": ep_title})
+            elif current_content['type'] == 'break':
+                self.current_meta.update({"show": "Commercial Break", "title": "Messages"})
 
             # --- BUMPER SEQUENCE ---
             if current_content['type'] == 'break':
@@ -272,10 +287,9 @@ class TVStationService:
                 player.set_media(media)
                 player.play()
 
-                # Wait for video to start
-                time.sleep(2.0)
+                time.sleep(2.0) 
                 
-                # --- BUG LOGIC (Using Logo Filter) ---
+                # --- BUG LOGIC (Trigger Only) ---
                 start_time = time.time()
                 last_bug_time = start_time
                 bug_triggered = False 
@@ -289,33 +303,24 @@ class TVStationService:
 
                     # TRIGGER BUG AT 5 SECONDS
                     if elapsed >= 5 and not bug_triggered:
-                        if hasattr(self, 'logo_string') and self.logo_string:
-                            # 0. Clear any existing logo (Safety)
-                            player.video_set_logo_int(0, 0)
-                            
-                            # 1. Load the Sequence String
-                            player.video_set_logo_string(1, self.logo_string)
-                            
-                            # 2. Position it (Bottom-Right)
-                            player.video_set_logo_int(7, 10) 
-                            
-                            # 3. Offsets (Pixels from edge)
-                            player.video_set_logo_int(2, 50) # X
-                            player.video_set_logo_int(3, 50) # Y
-                            
-                            # 4. Opacity (255 = Fully Visible)
-                            player.video_set_logo_int(6, 255)
-                            
-                            # 5. GO! (Enable the filter)
-                            player.video_set_logo_int(0, 1)
+                        # We don't load the string here anymore.
+                        # We just Reset and Enable.
+                        
+                        # 1. Reset (Disable)
+                        player.video_set_logo_int(0, 0)
+                        
+                        # 2. Set Opacity to Max
+                        player.video_set_logo_int(6, 255)
+                        
+                        # 3. GO! (Enable)
+                        # This restarts the pre-loaded sequence from Frame 0
+                        player.video_set_logo_int(0, 1)
                             
                         bug_triggered = True 
 
-                    # TURN OFF BUG (After exact duration)
+                    # TURN OFF BUG
                     if bug_triggered and elapsed >= (5 + self.bug_duration):
-                        # Disable the filter
                         player.video_set_logo_int(0, 0)
-                        # Note: We don't reset 'bug_triggered', so it only plays once per video
                     
                     if duration > 0:
                         curr_time = player.get_time()
@@ -323,10 +328,7 @@ class TVStationService:
 
                     if state == vlc.State.Ended or state == vlc.State.Error:
                         break
-                    time.sleep(0.5)
-
-        
-
+                    time.sleep(0.1)
                 
                 # Monitor Loop
                 while self.running:
@@ -454,39 +456,66 @@ class TVStationService:
 
     def _load_bug_sequence(self):
         """
-        Scans assets/bugs/bug1 for a PNG sequence and builds the VLC Logo String.
+        Builds the Optimized Animation Sequence + Safety Stop.
         """
-        bug_dir = os.path.join(app_dir, "assets", "bugs", "bug1")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        bug_dir = os.path.join(base_dir, "assets", "bugs", "bug1")
+        
         self.logo_string = ""
         self.bug_duration = 0
         
         if os.path.exists(bug_dir):
-            # 1. Get all PNGs and sort them (Crucial for correct animation order)
             files = sorted([f for f in os.listdir(bug_dir) if f.lower().endswith(".png")])
             
-            if files:
-                print(f"Found {len(files)} frames in {bug_dir}")
+            if len(files) > 400:
+                # --- OPTIMIZATION LOGIC ---
+                intro_end_idx = 70      
+                hold_frame_idx = 70     
+                outro_start_idx = 433   
+                FRAME_DELAY = 33 
                 
-                # 2. Calculate Frame Delay
-                # 29.97 fps = 33.36ms per frame. We use 33ms (approx).
-                frame_delay = 33 
-                
-                # 3. Build the Sequence String
-                # Syntax: path,delay,alpha;path,delay,alpha;...
                 seq_parts = []
-                for f in files:
-                    full_path = os.path.join(bug_dir, f)
-                    # VLC requires forward slashes even on Windows
-                    clean_path = full_path.replace("\\", "/")
-                    seq_parts.append(f"{clean_path},{frame_delay},255")
                 
+                # 1. INTRO
+                for f in files[:intro_end_idx]:
+                    path = self._get_rel_path(bug_dir, f, base_dir)
+                    seq_parts.append(f"{path},{FRAME_DELAY},255")
+                
+                # 2. HOLD (12 seconds)
+                skipped_count = outro_start_idx - hold_frame_idx
+                hold_duration = skipped_count * FRAME_DELAY
+                path = self._get_rel_path(bug_dir, files[hold_frame_idx], base_dir)
+                seq_parts.append(f"{path},{hold_duration},255")
+                
+                # 3. OUTRO
+                for f in files[outro_start_idx:]:
+                    path = self._get_rel_path(bug_dir, f, base_dir)
+                    seq_parts.append(f"{path},{FRAME_DELAY},255")
+                    
+                # 4. SAFETY STOP (New)
+                # Repeats the last frame but invisible, for a long time.
+                # This prevents the global filter from looping back to the intro.
+                last_frame = files[-1]
+                path = self._get_rel_path(bug_dir, last_frame, base_dir)
+                seq_parts.append(f"{path},100000,0") 
+
                 self.logo_string = ";".join(seq_parts)
-                self.bug_duration = (len(files) * frame_delay) / 1000.0
-                print(f"Bug Sequence Ready: {self.bug_duration}s duration")
+                
+                # Duration calculation (Intro + Hold + Outro)
+                total_ms = (len(files[:intro_end_idx]) * FRAME_DELAY) + hold_duration + (len(files[outro_start_idx:]) * FRAME_DELAY)
+                self.bug_duration = total_ms / 1000.0
+                
+                print(f"Bug Pre-Loaded! Duration: {self.bug_duration}s")
             else:
-                print("WARNING: Bug folder exists but contains no PNGs.")
+                print("WARNING: Not enough frames.")
         else:
             print(f"WARNING: Bug folder not found: {bug_dir}")
+
+    def _get_rel_path(self, folder, filename, base):
+        """Helper to get clean relative path for VLC"""
+        full = os.path.join(folder, filename)
+        rel = os.path.relpath(full, base)
+        return rel.replace("\\", "/")
 
 class StationManagerApp:
     def __init__(self, root):
