@@ -192,7 +192,7 @@ class TVStationService:
         bug_args = [
             "--no-video-title-show", "--quiet", "--no-audio",
             "--video-filter=colorkey", 
-            "--colorkey=0x000000",  # Remove Black Background
+            "--colorkey=0",  # Remove Black Background
             "--colorkey-similarity=10" # Lower tolerance (WebM is cleaner than MP4)
         ]
         bug_instance = vlc.Instance(bug_args)
