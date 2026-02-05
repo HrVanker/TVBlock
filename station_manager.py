@@ -186,24 +186,31 @@ class TVStationService:
         player.set_hwnd(self.window_id)
 
         # --- BUG PLAYER SETUP (WebM) ---
-        # We use the 'colorkey' filter to turn Black pixels transparent.
-        # Since your WebM has alpha, VLC renders it against the window's black background.
-        # This filter then removes that black background, revealing the video behind it.
+        # 1. Define path EARLY to prevent "UnboundLocalError"
+        bug_path = os.path.join(app_dir, "assets", "output.webm")
+
+        # 2. Configure VLC (Try splitting arguments if '=' fails)
         bug_args = [
-            "--no-video-title-show", "--quiet", "--no-audio",
-            "--video-filter=colorkey", 
-            "--colorkey=0",  # Remove Black Background
-            "--colorkey-similarity=10" # Lower tolerance (WebM is cleaner than MP4)
+            "--no-video-title-show", "--quiet", "--no-audio"
         ]
-        bug_instance = vlc.Instance(bug_args)
-        bug_player = bug_instance.media_player_new()
-        bug_player.set_hwnd(self.bug_window_id)
         
-        # Load the WebM
-        bug_path = os.path.join(app_dir, "assets", "bug.webm")
-        if os.path.exists(bug_path):
-            bug_media = bug_instance.media_new(bug_path)
-            bug_player.set_media(bug_media)
+        bug_instance = vlc.Instance(bug_args)
+        bug_player = None 
+
+        # 3. Create Player (Only if Instance succeeded)
+        if bug_instance:
+            try:
+                bug_player = bug_instance.media_player_new()
+                bug_player.set_hwnd(self.bug_window_id)
+                
+                if os.path.exists(bug_path):
+                    bug_media = bug_instance.media_new(bug_path)
+                    bug_player.set_media(bug_media)
+            except Exception as e:
+                print(f"Error creating bug player: {e}")
+                bug_player = None
+        else:
+            print("WARNING: Failed to initialize Bug Player (Check VLC arguments)")
 
         while self.running:
             # Get Next Item
@@ -308,9 +315,9 @@ class TVStationService:
                     elapsed = current_time - last_bug_time
 
                     # TRIGGER BUG AT 5 SECONDS
+                    # CRITICAL FIX: Added 'and bug_player' check to prevent crash
                     if elapsed >= 5 and not bug_triggered:
-                        if os.path.exists(bug_path):
-                            # Stop resets it to frame 0 so it plays from the start
+                        if bug_player and os.path.exists(bug_path):
                             bug_player.stop() 
                             bug_player.play()
                         bug_triggered = True 
@@ -323,9 +330,7 @@ class TVStationService:
                     if state == vlc.State.Ended or state == vlc.State.Error:
                         break
                     time.sleep(0.5)
-                # ------------------------
-                
-                duration = player.get_length()
+
                 
                 # Monitor Loop
                 while self.running:
@@ -395,6 +400,10 @@ class TVStationService:
                         final_pct = (curr_time / duration) * 100
                         if final_pct > 5 and final_pct < 95:
                             self.update_history(current_content['show'], current_content['path'], "partial", final_pct)
+
+            
+            
+        self.current_meta = {"title": "Offline", "show": "", "percent": 0}
 
         player.stop()
         self.current_meta = {"title": "Offline", "show": "", "percent": 0}
