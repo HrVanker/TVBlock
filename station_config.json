@@ -7,8 +7,8 @@
     "settings": {
         "enable_movies": false,
         "movie_frequency": 20,
-        "commercial_frequency": 4,
-        "commercial_min_sec": 120,
+        "commercial_frequency": 2,
+        "commercial_min_sec": 123,
         "commercial_max_sec": 378
     },
     "rotation_groups": {
@@ -28,6 +28,12 @@
     },
     "schedule_block": [
         {
+            "type": "rotate",
+            "count": 1,
+            "random": true,
+            "group": "Star_Trek"
+        },
+        {
             "type": "anchor",
             "count": 2,
             "random": true,
@@ -43,12 +49,6 @@
             "count": 1,
             "random": true,
             "group": "90s_Kids"
-        },
-        {
-            "type": "rotate",
-            "count": 1,
-            "random": true,
-            "group": "Star_Trek"
         },
         {
             "type": "rotate",

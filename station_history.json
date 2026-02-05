@@ -18,8 +18,8 @@
             "show": "Batman - The Animated Series",
             "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x20 - I've Got Batman in My Basement.mkv",
             "status": "partial",
-            "percent_watched": 6.08,
-            "last_played": "2026-01-26 15:53:22.888257"
+            "percent_watched": 6.1,
+            "last_played": "2026-02-05 00:19:24.656512"
         },
         "The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4": {
             "show": "Pete & Pete",
@@ -48,6 +48,13 @@
             "status": "partial",
             "percent_watched": 9.8,
             "last_played": "2026-01-25 09:32:28.115928"
+        },
+        "The Simpsons - 5x10 - $pringfield (or, How I Learned to Stop Worrying and Love Legalized Gambling).mp4": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 5\\The Simpsons - 5x10 - $pringfield (or, How I Learned to Stop Worrying and Love Legalized Gambling).mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-01-26 16:36:30.592928"
         }
     }
 }

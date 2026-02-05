@@ -1,4 +1,6 @@
 ﻿import tkinter as tk
+import ctypes
+from PIL import Image
 from tkinter import ttk, messagebox, Menu
 from rotation_editor import RotationEditor
 from tkinter import ttk, messagebox, Menu, filedialog
@@ -129,10 +131,28 @@ class TVStationService:
             config_file=CONFIG_FILE
         )
 
-    def start_broadcast(self, window_id):
+        # --- NEW: PRE-CALCULATE BUG DURATION ---
+        self.bug_path = os.path.join(app_dir, "assets", "output.gif")
+        self.bug_duration = 5.0 # Default fallback
+        if os.path.exists(self.bug_path):
+            try:
+                img = Image.open(self.bug_path)
+                # Calculate total duration in seconds (sum of all frame durations)
+                # PIL returns duration in milliseconds
+                total_ms = 0
+                for i in range(img.n_frames):
+                    img.seek(i)
+                    total_ms += img.info.get('duration', 100)
+                self.bug_duration = total_ms / 1000.0
+                print(f"Bug Duration Calculated: {self.bug_duration} seconds")
+            except Exception as e:
+                print(f"Error reading GIF duration: {e}")
+
+    def start_broadcast(self, window_id, bug_window_id):
         if self.running: return
         self.running = True
-        self.window_id = window_id # Store it
+        self.window_id = window_id
+        self.bug_window_id = bug_window_id # Store the bug ID
         self.thread = threading.Thread(target=self._broadcast_loop, daemon=True)
         self.thread.start()
 
@@ -156,56 +176,39 @@ class TVStationService:
     def _broadcast_loop(self):
         import platform
         
-        # --- SAFE MODE SETTINGS (HDD Friendly) ---
+        # --- MAIN PLAYER SETUP ---
         vlc_args = [
-            "--no-video-title-show",
-            "--mouse-hide-timeout=0",
-            "--quiet",
-            "--sub-filter=logo",
-            
-            # INCREASED BUFFER: 10,000ms (10 seconds)
-            # This fills RAM with 10s of video. If the drive locks up for 5s,
-            # you won't notice because the video plays from RAM.
-            "--file-caching=10000", 
-            "--network-caching=10000",
-            
-            "--clock-jitter=0",
-            "--clock-synchro=0",
-            "--avcodec-hw=any",
-            "--avcodec-skiploopfilter=1" 
+            "--no-video-title-show", "--quiet", 
+            "--file-caching=10000", "--network-caching=10000"
         ]
-        
         vlc_instance = vlc.Instance(vlc_args)
         player = vlc_instance.media_player_new()
+        player.set_hwnd(self.window_id)
+
+        # --- BUG PLAYER SETUP (WebM) ---
+        # We use the 'colorkey' filter to turn Black pixels transparent.
+        # Since your WebM has alpha, VLC renders it against the window's black background.
+        # This filter then removes that black background, revealing the video behind it.
+        bug_args = [
+            "--no-video-title-show", "--quiet", "--no-audio",
+            "--video-filter=colorkey", 
+            "--colorkey=0x000000",  # Remove Black Background
+            "--colorkey-similarity=10" # Lower tolerance (WebM is cleaner than MP4)
+        ]
+        bug_instance = vlc.Instance(bug_args)
+        bug_player = bug_instance.media_player_new()
+        bug_player.set_hwnd(self.bug_window_id)
         
-        sys_platform = platform.system()
-        if sys_platform == "Windows":
-            player.set_hwnd(self.window_id)
-        elif sys_platform == "Linux":
-            player.set_xwindow(self.window_id)
-        elif sys_platform == "Darwin":
-            player.set_nsobject(self.window_id)
-        
-        # Pre-fetch
-        next_content = self.scheduler.get_next_item()
-        next_playlist = self._prepare_playlist(next_content)
-        
+        # Load the WebM
+        bug_path = os.path.join(app_dir, "assets", "bug.webm")
+        if os.path.exists(bug_path):
+            bug_media = bug_instance.media_new(bug_path)
+            bug_player.set_media(bug_media)
+
         while self.running:
-            # 1. Get Next Item (Sequential, not concurrent)
+            # Get Next Item
             current_content = self.scheduler.get_next_item()
             current_playlist = self._prepare_playlist(current_content)
-            
-            # Update Meta
-            if current_content['type'] == 'video':
-                filename = os.path.basename(current_content['path'])
-                display_name = os.path.splitext(filename)[0]
-                self.current_meta = {
-                    "title": display_name, 
-                    "show": current_content['show'], 
-                    "percent": 0
-                }
-            else:
-                self.current_meta = {"title": "Commercial Break", "show": "---", "percent": 0}
 
             # --- BUMPER SEQUENCE ---
             if current_content['type'] == 'break':
@@ -216,7 +219,25 @@ class TVStationService:
                 upcoming_shows = self.scheduler.get_upcoming_durations(limit=3)
 
                 # 2. START PLAYING THE VIDEO FIRST
-                bumper_bg = os.path.join(app_dir, "assets", "up_next_bg.mp4")
+                # --- NEW: RANDOM BACKGROUND PICKER ---
+                bg_folder = os.path.join(app_dir, "assets", "bg")
+                bumper_bg = None
+
+                # Check if folder exists and has files
+                if os.path.exists(bg_folder):
+                    valid_exts = ('.mp4', '.mkv', '.avi', '.mov')
+                    files = [f for f in os.listdir(bg_folder) if f.lower().endswith(valid_exts)]
+                    
+                    if files:
+                        selected = random.choice(files)
+                        bumper_bg = os.path.join(bg_folder, selected)
+                        print(f"Selected Bumper: {selected}")
+
+                # Fallback if folder is missing or empty
+                if not bumper_bg:
+                    bumper_bg = os.path.join(app_dir, "assets", "up_next_bg.mp4")
+                # -------------------------------------
+
                 media = vlc_instance.media_new(bumper_bg)
                 player.set_media(media)
                 player.play()
@@ -271,34 +292,37 @@ class TVStationService:
                 player.set_media(media)
                 player.play()
 
+                # Wait for video to start
                 time.sleep(2.0)
-
-                # We use self.gui.root because that is the master window for the app
-                #gif_path = os.path.join(app_dir, "assets", "my_logo.gif")
-                #bug_gui = BugOverlay(self.gui.root, gif_path)
                 
-                # Timers for this specific video
+                # --- BUG TIMING ---
                 start_time = time.time()
                 last_bug_time = start_time
-                bug_active = False
+                bug_triggered = False 
 
-                # Only check resume for actual videos, not commercials
-                if current_content['type'] == 'video':
-                    filename = os.path.basename(filepath)
-                    history_log = self.scheduler.history.get("playback_log", {})
+                duration = player.get_length()
+                
+                while self.running:
+                    state = player.get_state()
+                    current_time = time.time()
+                    elapsed = current_time - last_bug_time
+
+                    # TRIGGER BUG AT 5 SECONDS
+                    if elapsed >= 5 and not bug_triggered:
+                        if os.path.exists(bug_path):
+                            # Stop resets it to frame 0 so it plays from the start
+                            bug_player.stop() 
+                            bug_player.play()
+                        bug_triggered = True 
                     
-                    if filename in history_log:
-                        data = history_log[filename]
-                        if data.get("status") == "partial":
-                            pct = data.get("percent_watched", 0)
-                            
-                            # Only resume if it's a meaningful amount
-                            if 5 < pct < 95:
-                                # Subtract 2% for context, but don't go below 0%
-                                resume_pct = max(0, pct - 2)
-                                
-                                player.set_position(resume_pct / 100.0)
-                                print(f"Resuming {filename} at {resume_pct}% (Rewound from {pct}%)")
+                    if duration > 0:
+                        curr_time = player.get_time()
+                        pct = (curr_time / duration) * 100
+                        self.current_meta["percent"] = pct
+
+                    if state == vlc.State.Ended or state == vlc.State.Error:
+                        break
+                    time.sleep(0.5)
                 # ------------------------
                 
                 duration = player.get_length()
@@ -309,14 +333,26 @@ class TVStationService:
                     current_time = time.time()
                     elapsed = current_time - last_bug_time
 
+                    # 1. Trigger the bug at 5 seconds
                     if elapsed >= 5 and not bug_active:
-                        self.gui.root.after(0, self.bug_gui.show)
-                        bug_active = True # Prevents it from triggering again for this video 
+                        # Enable the Logo Filter (0=Enable, 1=On)
+                        player.video_set_logo_int(0, 1)
+                        # Set the File (1=File, path)
+                        player.video_set_logo_string(1, self.bug_path)
+                        # Set Opacity (6=Opacity, 255=Max)
+                        player.video_set_logo_int(6, 255)
+                        
+                        bug_active = True 
                     
-                    if bug_active and elapsed >= 35:
-                        self.gui.root.after(0, self.bug_gui.hide) # Thread-safe hide
+                    # 2. Turn it off exactly when the animation finishes
+                    # (5 seconds start time + exact length of the GIF)
+                    if bug_active and elapsed >= (5 + self.bug_duration):
+                        # Disable the Logo Filter (0=Enable, 0=Off)
+                        player.video_set_logo_int(0, 0)
+                        
                         bug_active = False
-                        last_bug_time = current_time
+                        last_bug_time = current_time # Reset timer to loop it later?
+                    # --------------------------------
                     
                     if duration > 0:
                         curr_time = player.get_time()
@@ -689,35 +725,46 @@ class StationManagerApp:
                 self.ep_tree.focus(item_id) # Set focus back to item
 
     def toggle_station(self):
-        # 1. Check the STATION'S running status, not the GUI's
         if not self.station.running:
-
-            # 2. Create the permanent black window for the video
+            # 1. Create the Main Video Window (Black Background)
             self.video_window = tk.Toplevel(self.root)
             self.video_window.title("TV Station Broadcast")
             self.video_window.configure(bg="black")
             self.video_window.attributes("-fullscreen", True)
             
+            # Bind Escape to exit
             self.video_window.bind("<Escape>", lambda e: self.toggle_station())
             self.video_window.protocol("WM_DELETE_WINDOW", self.toggle_station)
             self.video_window.update()
-            window_id = self.video_window.winfo_id()
-
-            gif_path = os.path.join(app_dir, "assets", "output.gif")
-            self.station.bug_gui = BugOverlay(self.video_window, gif_path)
             
-            # 3. Start Broadcast with this window
-            self.station.start_broadcast(window_id)
+            # 2. Create the Bug Window (For the WebM)
+            self.bug_window = tk.Toplevel(self.video_window)
+            self.bug_window.configure(bg="black") 
+            self.bug_window.overrideredirect(True) # Frameless
+            
+            # Size: 200x150 (Adjust this to match your WebM aspect ratio)
+            # Position: Bottom Right
+            screen_w = self.video_window.winfo_screenwidth()
+            screen_h = self.video_window.winfo_screenheight()
+            self.bug_window.geometry(f"300x200+{screen_w-350}+{screen_h-250}")
+            self.bug_window.update()
+
+            # 3. WIN32 MAGIC: Embed the Bug Window INSIDE the Video Window
+            main_hwnd = self.video_window.winfo_id()
+            bug_hwnd = self.bug_window.winfo_id()
+            ctypes.windll.user32.SetParent(bug_hwnd, main_hwnd)
+
+            # 4. Start Broadcast (Passing BOTH window IDs)
+            self.station.start_broadcast(main_hwnd, bug_hwnd)
             self.btn_start.config(text="⏹ STOP STATION", bg="red")
+        
         else:
             self.station.stop_broadcast()
             
-            # --- NEW: DESTROY THE GIF WHEN STATION STOPS ---
-            if hasattr(self.station, 'bug_gui'):
-                self.station.bug_gui.destroy()
-            # -----------------------------------------------
+            if hasattr(self, 'bug_window') and self.bug_window:
+                self.bug_window.destroy()
+                self.bug_window = None
 
-            # Destroy the video window if it exists
             if hasattr(self, 'video_window') and self.video_window:
                 self.video_window.destroy()
                 self.video_window = None
