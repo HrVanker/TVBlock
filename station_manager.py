@@ -176,29 +176,33 @@ class TVStationService:
     def _broadcast_loop(self):
         import platform
         
-        # --- VLC SETUP ---
+        # --- 1. PREPARE LOGO PATH ---
+        # Ensure we have a valid path before starting the engine
+        logo_arg = ""
+        if hasattr(self, 'static_bug_path') and self.static_bug_path:
+            # Enclose in quotes just in case of spaces, though VLC Python handling is usually okay
+            logo_arg = self.static_bug_path
+            print(f"VLC Engine Start: Hard-coding logo to {logo_arg}")
+        else:
+            print("VLC Engine Start: No logo path found.")
+
+        # --- 2. VLC SETUP (ALWAYS ON) ---
         vlc_args = [
             "--no-video-title-show", "--quiet", 
             "--file-caching=10000", "--network-caching=10000",
-            "--sub-filter=logo",    # Enable Filter Engine
-            "--logo-opacity=255",   # Ready to show
-            "--logo-position=10",   # Bottom-Right
-            "--logo-x=50", "--logo-y=50" # Offsets
+            
+            # FORCE LOGO FILTER ON STARTUP
+            "--sub-filter=logo",        # Enable the internal filter
+            f"--logo-file={logo_arg}",  # Path to the single PNG
+            "--logo-position=10",       # Bottom-Right
+            "--logo-opacity=255",       # Fully Visible
+            "--logo-x=50",              # X Offset
+            "--logo-y=50"               # Y Offset
         ]
+        
         vlc_instance = vlc.Instance(vlc_args)
         player = vlc_instance.media_player_new()
         player.set_hwnd(self.window_id)
-
-        # PRE-LOAD LOGO (If available)
-        # We set the file immediately so VLC loads the texture into memory.
-        # It remains invisible because opacity starts at 0.
-        if hasattr(self, 'static_bug_path') and self.static_bug_path:
-            player.video_set_logo_string(1, self.static_bug_path)
-            player.video_set_logo_int(0, 1) # Enable filter
-
-        while self.running:
-            current_content = self.scheduler.get_next_item()
-            current_playlist = self._prepare_playlist(current_content)
 
         while self.running:
             current_content = self.scheduler.get_next_item()
@@ -294,66 +298,15 @@ class TVStationService:
                 player.set_media(media)
                 player.play()
 
-                # --- FADE ENGINE STATE ---
-                bug_state = "HIDDEN" 
-                start_time = time.time()
-                fade_start_time = 0
-                
-                # CONFIGURATION
-                TRIGGER_TIME = 5.0   # Seconds into video to start
-                FADE_DURATION = 1.5  # Seconds to fade in/out
-                HOLD_DURATION = 10.0 # Seconds to stay fully visible
+                # Wait for video to load
+                time.sleep(1.5)
                 
                 duration = player.get_length()
                 
-                # Ensure start is invisible
-                player.video_set_logo_int(6, 0) 
-
+                # --- MONITOR LOOP (No Logo Logic) ---
                 while self.running:
                     state = player.get_state()
-                    current_time = time.time()
-                    elapsed = current_time - start_time
-
-                    # --- STATE MACHINE ---
                     
-                    # 1. START FADE IN
-                    if bug_state == "HIDDEN" and elapsed >= TRIGGER_TIME:
-                        print("Bug: Starting Fade In")
-                        bug_state = "FADING_IN"
-                        fade_start_time = current_time
-
-                    # 2. CALCULATE FADE IN
-                    elif bug_state == "FADING_IN":
-                        progress = (current_time - fade_start_time) / FADE_DURATION
-                        if progress >= 1.0:
-                            player.video_set_logo_int(6, 255) # Max Opacity
-                            bug_state = "VISIBLE"
-                            fade_start_time = current_time # Reset timer for hold
-                        else:
-                            # Calculate linear fade (0 -> 255)
-                            new_opacity = int(progress * 255)
-                            player.video_set_logo_int(6, new_opacity)
-
-                    # 3. HOLD VISIBLE
-                    elif bug_state == "VISIBLE":
-                        if (current_time - fade_start_time) >= HOLD_DURATION:
-                            print("Bug: Starting Fade Out")
-                            bug_state = "FADING_OUT"
-                            fade_start_time = current_time
-
-                    # 4. CALCULATE FADE OUT
-                    elif bug_state == "FADING_OUT":
-                        progress = (current_time - fade_start_time) / FADE_DURATION
-                        if progress >= 1.0:
-                            player.video_set_logo_int(6, 0) # Fully invisible
-                            bug_state = "DONE"
-                        else:
-                            # Calculate linear fade (255 -> 0)
-                            new_opacity = 255 - int(progress * 255)
-                            player.video_set_logo_int(6, new_opacity)
-
-                    # ---------------------
-
                     if duration > 0:
                         curr_time = player.get_time()
                         self.current_meta["percent"] = (curr_time / duration) * 100
@@ -361,42 +314,7 @@ class TVStationService:
                     if state == vlc.State.Ended or state == vlc.State.Error:
                         break
                     
-                    # Short sleep is fine here; math runs fast enough
-                    time.sleep(0.05)
-                
-                # Monitor Loop
-                while self.running:
-                    state = player.get_state()
-                    current_time = time.time()
-                    elapsed = current_time - last_bug_time
-
-                    # 1. Trigger the bug at 5 seconds
-                    if elapsed >= 5 and not bug_active:
-                        # Enable the Logo Filter (0=Enable, 1=On)
-                        player.video_set_logo_int(0, 1)
-                        # Set the File (1=File, path)
-                        player.video_set_logo_string(1, self.bug_path)
-                        # Set Opacity (6=Opacity, 255=Max)
-                        player.video_set_logo_int(6, 255)
-                        
-                        bug_active = True 
-                    
-                    # 2. Turn it off exactly when the animation finishes
-                    # (5 seconds start time + exact length of the GIF)
-                    if bug_active and elapsed >= (5 + self.bug_duration):
-                        # Disable the Logo Filter (0=Enable, 0=Off)
-                        player.video_set_logo_int(0, 0)
-                        
-                        bug_active = False
-                        last_bug_time = current_time # Reset timer to loop it later?
-                    # --------------------------------
-                    
-                    if duration > 0:
-                        curr_time = player.get_time()
-                        pct = (curr_time / duration) * 100
-                        self.current_meta["percent"] = pct
-                    else:
-                        pct = 0
+                    time.sleep(0.1)
 
                     # --- CASE 1: USER SKIPPED ---
                     if self.skip_flag:
