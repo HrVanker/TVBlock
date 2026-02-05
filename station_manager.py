@@ -192,7 +192,7 @@ class TVStationService:
             "--file-caching=10000", "--network-caching=10000",
             
             # FORCE LOGO FILTER ON STARTUP
-            "--sub-filter=logo",        # Enable the internal filter
+            "--sub-source=logo",        # Enable the internal filter
             f"--logo-file={logo_arg}",  # Path to the single PNG
             "--logo-position=10",       # Bottom-Right
             "--logo-opacity=255",       # Fully Visible
@@ -419,7 +419,7 @@ class TVStationService:
         
         if os.path.exists(bug_path):
             # Convert to forward slashes for VLC
-            self.static_bug_path = bug_path.replace("\\", "/")
+            self.static_bug_path = bug_path #.replace("\\", "/")
             print(f"Bug Loaded: Using static master frame: {self.static_bug_path}")
         else:
             print(f"WARNING: Could not find master frame {target_frame}. Checking folder...")
