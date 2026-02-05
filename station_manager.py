@@ -180,20 +180,25 @@ class TVStationService:
         # Ensure we have a valid path before starting the engine
         logo_arg = ""
         if hasattr(self, 'static_bug_path') and self.static_bug_path:
-            # Enclose in quotes just in case of spaces, though VLC Python handling is usually okay
             logo_arg = self.static_bug_path
-            print(f"VLC Engine Start: Hard-coding logo to {logo_arg}")
+            print(f"VLC Config: Logo path set to {logo_arg}")
         else:
-            print("VLC Engine Start: No logo path found.")
+            print("VLC Config: No logo found (Check assets/bugs/bug1)")
 
         # --- 2. VLC SETUP (ALWAYS ON) ---
         vlc_args = [
             "--no-video-title-show", "--quiet", 
             "--file-caching=10000", "--network-caching=10000",
             
-            # FORCE LOGO FILTER ON STARTUP
-            "--sub-source=logo",        # Enable the internal filter
-            f"--logo-file={logo_arg}",  # Path to the single PNG
+            # --- CRITICAL DISPLAY FIXES ---
+            "--vout=wingdi",   # Force D3D9 (Better OSD compositing than D3D11)
+            "--no-overlay",       # Disable hardware overlay (Prevents video hiding the logo)
+            # ------------------------------
+
+            # LOGO MODULE
+            "--sub-source=logo",        # Use 'sub-source' for local playback
+            f"--logo-file={logo_arg}",  # Path to image
+            "--logo-repeat=-1",         # Loop forever (Prevents auto-hide)
             "--logo-position=10",       # Bottom-Right
             "--logo-opacity=255",       # Fully Visible
             "--logo-x=50",              # X Offset
@@ -298,12 +303,11 @@ class TVStationService:
                 player.set_media(media)
                 player.play()
 
-                # Wait for video to load
+                # Wait for video to initialize
                 time.sleep(1.5)
                 
                 duration = player.get_length()
                 
-                # --- MONITOR LOOP (No Logo Logic) ---
                 while self.running:
                     state = player.get_state()
                     
