@@ -149,7 +149,7 @@ class TVStationService:
             except Exception as e:
                 print(f"Error reading GIF duration: {e}")
 
-    def start_broadcast(self, window_id, bug_window_id):
+    def start_broadcast(self, window_id):
         if self.running: return
         self.running = True
         self.window_id = window_id
