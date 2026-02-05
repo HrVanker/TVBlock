@@ -4,7 +4,6 @@ from PIL import Image
 from tkinter import ttk, messagebox, Menu
 from rotation_editor import RotationEditor
 from tkinter import ttk, messagebox, Menu, filedialog
-from tv_player import BugOverlay
 from graphics_engine import GraphicsEngine
 import random
 import json
@@ -130,24 +129,6 @@ class TVStationService:
             movie_library=self.movie_library, 
             config_file=CONFIG_FILE
         )
-        self._load_bug_sequence()
-
-        # --- NEW: PRE-CALCULATE BUG DURATION ---
-        self.bug_path = os.path.join(app_dir, "assets", "output.gif")
-        self.bug_duration = 5.0 # Default fallback
-        if os.path.exists(self.bug_path):
-            try:
-                img = Image.open(self.bug_path)
-                # Calculate total duration in seconds (sum of all frame durations)
-                # PIL returns duration in milliseconds
-                total_ms = 0
-                for i in range(img.n_frames):
-                    img.seek(i)
-                    total_ms += img.info.get('duration', 100)
-                self.bug_duration = total_ms / 1000.0
-                print(f"Bug Duration Calculated: {self.bug_duration} seconds")
-            except Exception as e:
-                print(f"Error reading GIF duration: {e}")
 
     def start_broadcast(self, window_id):
         if self.running: return
@@ -176,33 +157,10 @@ class TVStationService:
     def _broadcast_loop(self):
         import platform
         
-        # --- 1. PREPARE LOGO PATH ---
-        # Ensure we have a valid path before starting the engine
-        logo_arg = ""
-        if hasattr(self, 'static_bug_path') and self.static_bug_path:
-            logo_arg = self.static_bug_path
-            print(f"VLC Config: Logo path set to {logo_arg}")
-        else:
-            print("VLC Config: No logo found (Check assets/bugs/bug1)")
-
         # --- 2. VLC SETUP (ALWAYS ON) ---
         vlc_args = [
             "--no-video-title-show", "--quiet", 
             "--file-caching=10000", "--network-caching=10000",
-            
-            # --- CRITICAL DISPLAY FIXES ---
-            "--vout=wingdi",   # Force D3D9 (Better OSD compositing than D3D11)
-            "--no-overlay",       # Disable hardware overlay (Prevents video hiding the logo)
-            # ------------------------------
-
-            # LOGO MODULE
-            "--sub-source=logo",        # Use 'sub-source' for local playback
-            f"--logo-file={logo_arg}",  # Path to image
-            "--logo-repeat=-1",         # Loop forever (Prevents auto-hide)
-            "--logo-position=10",       # Bottom-Right
-            "--logo-opacity=255",       # Fully Visible
-            "--logo-x=50",              # X Offset
-            "--logo-y=50"               # Y Offset
         ]
         
         vlc_instance = vlc.Instance(vlc_args)
@@ -409,31 +367,6 @@ class TVStationService:
             
         # Update Scheduler's in-memory history so Library tab refreshes correctly
         self.scheduler.history = self.scheduler._load_history()
-
-    def _load_bug_sequence(self):
-        """
-        Loads a single STATIC frame (Frame 71) to use for the fade engine.
-        """
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        # We look specifically for the frame you mentioned is part of the static block
-        target_frame = "0051.png"
-        bug_path = os.path.join(base_dir, "assets", "bugs", "bug1", target_frame)
-        
-        self.static_bug_path = ""
-        
-        if os.path.exists(bug_path):
-            # Convert to forward slashes for VLC
-            self.static_bug_path = bug_path #.replace("\\", "/")
-            print(f"Bug Loaded: Using static master frame: {self.static_bug_path}")
-        else:
-            print(f"WARNING: Could not find master frame {target_frame}. Checking folder...")
-            # Fallback: Just grab the first PNG found
-            bug_dir = os.path.join(base_dir, "assets", "bugs", "bug1")
-            if os.path.exists(bug_dir):
-                files = [f for f in os.listdir(bug_dir) if f.endswith(".png")]
-                if files:
-                    self.static_bug_path = os.path.join(bug_dir, files[0]).replace("\\", "/")
-                    print(f"Fallback: Using {files[0]}")
 
 class StationManagerApp:
     def __init__(self, root):

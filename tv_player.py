@@ -127,18 +127,6 @@ def main(parent_gui):
                 player.play()
                 time.sleep(1) # Give VLC time to start
 
-                # Channel Bug Timer Variables
-                start_time = time.time()
-                last_bug_time = start_time
-                bug_active = False
-                CHANNEL_BUG_GIF = os.path.join(BASE_DIR, "assets", "output.gif")
-                print("DEBUG: Video started. Loading GUI...", flush=True)
-                # This is likely where your code was freezing before!
-                bug_gui = BugOverlay(parent_gui, CHANNEL_BUG_GIF)
-                print("DEBUG: GUI loaded. Entering playback loop.", flush=True)
-
-                
-
                 # Save history when show finishes normally
                 update_history(current_video_state["show"], current_video_state["path"], "watched", 100)
 
@@ -168,102 +156,6 @@ def main(parent_gui):
             update_history(current_video_state["show"], current_video_state["path"], status, percent)
         
         player.stop()
-
-class BugOverlay:
-    def __init__(self, parent, gif_path):
-        self.parent = parent
-        self.top = tk.Toplevel(parent)
-        self.top.overrideredirect(True) 
-        
-        # --- NEW: Bind to the video window so it minimizes with it ---
-        self.top.transient(parent) 
-        self.top.attributes("-topmost", True) 
-        self.top.config(bg='black')
-        self.top.attributes('-transparentcolor', 'black')
-
-        self.gif = Image.open(gif_path)
-        gif_width, gif_height = self.gif.size
-
-        # 2. CALCULATE EXACT CORNER POSITION
-        screen_width = self.top.winfo_screenwidth()
-        screen_height = self.top.winfo_screenheight()
-
-        PAD_X = 50 
-        PAD_Y = 50 
-
-        pos_x = screen_width - gif_width - PAD_X
-        pos_y = screen_height - gif_height - PAD_Y
-
-        self.top.geometry(f"+{pos_x}+{pos_y}")
-
-        # --- NEW: Pre-load the GIF and extract its actual timing ---
-        self.frames = []
-        self.durations = []
-        try:
-            while True:
-                self.frames.append(ImageTk.PhotoImage(self.gif.copy().convert("RGBA")))
-                # Read the delay specific to this frame (default to 33ms if missing)
-                self.durations.append(self.gif.info.get('duration', 33)) 
-                self.gif.seek(len(self.frames))
-        except EOFError:
-            pass
-
-        self.total_frames = len(self.frames)
-        self.lbl = tk.Label(self.top, image=self.frames[0], bg='black', borderwidth=0)
-        self.lbl.pack()
-        self.current_frame = 0
-
-        self.top.withdraw()
-        self.is_visible = False
-
-    def animate(self):
-        if not self.is_visible: return
-
-        self.lbl.config(image=self.frames[self.current_frame])
-        
-        # --- NEW: Play once and stop ---
-        if self.current_frame < self.total_frames - 1:
-            delay = self.durations[self.current_frame]
-            self.current_frame += 1
-            self.top.after(delay, self.animate)
-        else:
-            # Reached the end of the GIF!
-            self.hide()
-
-    def show(self):
-        self.current_frame = 0 # Reset to beginning
-        self.is_visible = True
-        self.top.deiconify()
-        self.animate() # Start playing
-
-    def hide(self):
-        self.is_visible = False
-        self.top.withdraw()
-
-    def destroy(self):
-        self.top.destroy()
-
-# Global variable to hold our window
-current_bug_window = None
-
-def toggle_channel_bug(gif_path, enable=True):
-    """
-    Spawns or destroys the floating Tkinter GIF window.
-    """
-    global current_bug_window
-    
-    if enable and current_bug_window is None:
-        # Run the GUI in a separate thread so VLC doesn't freeze
-        def run_gui():
-            global current_bug_window
-            current_bug_window = BugOverlay(gif_path)
-            current_bug_window.root.mainloop()
-            
-        threading.Thread(target=run_gui, daemon=True).start()
-        
-    elif not enable and current_bug_window is not None:
-        current_bug_window.close()
-        current_bug_window = None
 
 #if __name__ == "__main__":
  #   main()
