@@ -130,6 +130,7 @@ class TVStationService:
             movie_library=self.movie_library, 
             config_file=CONFIG_FILE
         )
+        self._load_bug_sequence()
 
         # --- NEW: PRE-CALCULATE BUG DURATION ---
         self.bug_path = os.path.join(app_dir, "assets", "output.gif")
@@ -152,7 +153,6 @@ class TVStationService:
         if self.running: return
         self.running = True
         self.window_id = window_id
-        self.bug_window_id = bug_window_id # Store the bug ID
         self.thread = threading.Thread(target=self._broadcast_loop, daemon=True)
         self.thread.start()
 
@@ -176,44 +176,17 @@ class TVStationService:
     def _broadcast_loop(self):
         import platform
         
-        # --- MAIN PLAYER SETUP ---
+        # --- VLC SETUP (Single Player) ---
         vlc_args = [
             "--no-video-title-show", "--quiet", 
-            "--file-caching=10000", "--network-caching=10000"
+            "--file-caching=10000", "--network-caching=10000",
+            "--sub-filter=logo" # <--- IMPORTANT: Enables the Logo Engine
         ]
         vlc_instance = vlc.Instance(vlc_args)
         player = vlc_instance.media_player_new()
         player.set_hwnd(self.window_id)
 
-        # --- BUG PLAYER SETUP (WebM) ---
-        # 1. Define path EARLY to prevent "UnboundLocalError"
-        bug_path = os.path.join(app_dir, "assets", "output.webm")
-
-        # 2. Configure VLC (Try splitting arguments if '=' fails)
-        bug_args = [
-            "--no-video-title-show", "--quiet", "--no-audio"
-        ]
-        
-        bug_instance = vlc.Instance(bug_args)
-        bug_player = None 
-
-        # 3. Create Player (Only if Instance succeeded)
-        if bug_instance:
-            try:
-                bug_player = bug_instance.media_player_new()
-                bug_player.set_hwnd(self.bug_window_id)
-                
-                if os.path.exists(bug_path):
-                    bug_media = bug_instance.media_new(bug_path)
-                    bug_player.set_media(bug_media)
-            except Exception as e:
-                print(f"Error creating bug player: {e}")
-                bug_player = None
-        else:
-            print("WARNING: Failed to initialize Bug Player (Check VLC arguments)")
-
         while self.running:
-            # Get Next Item
             current_content = self.scheduler.get_next_item()
             current_playlist = self._prepare_playlist(current_content)
 
@@ -302,7 +275,7 @@ class TVStationService:
                 # Wait for video to start
                 time.sleep(2.0)
                 
-                # --- BUG TIMING ---
+                # --- BUG LOGIC (Using Logo Filter) ---
                 start_time = time.time()
                 last_bug_time = start_time
                 bug_triggered = False 
@@ -315,21 +288,44 @@ class TVStationService:
                     elapsed = current_time - last_bug_time
 
                     # TRIGGER BUG AT 5 SECONDS
-                    # CRITICAL FIX: Added 'and bug_player' check to prevent crash
                     if elapsed >= 5 and not bug_triggered:
-                        if bug_player and os.path.exists(bug_path):
-                            bug_player.stop() 
-                            bug_player.play()
+                        if hasattr(self, 'logo_string') and self.logo_string:
+                            # 0. Clear any existing logo (Safety)
+                            player.video_set_logo_int(0, 0)
+                            
+                            # 1. Load the Sequence String
+                            player.video_set_logo_string(1, self.logo_string)
+                            
+                            # 2. Position it (Bottom-Right)
+                            player.video_set_logo_int(7, 10) 
+                            
+                            # 3. Offsets (Pixels from edge)
+                            player.video_set_logo_int(2, 50) # X
+                            player.video_set_logo_int(3, 50) # Y
+                            
+                            # 4. Opacity (255 = Fully Visible)
+                            player.video_set_logo_int(6, 255)
+                            
+                            # 5. GO! (Enable the filter)
+                            player.video_set_logo_int(0, 1)
+                            
                         bug_triggered = True 
+
+                    # TURN OFF BUG (After exact duration)
+                    if bug_triggered and elapsed >= (5 + self.bug_duration):
+                        # Disable the filter
+                        player.video_set_logo_int(0, 0)
+                        # Note: We don't reset 'bug_triggered', so it only plays once per video
                     
                     if duration > 0:
                         curr_time = player.get_time()
-                        pct = (curr_time / duration) * 100
-                        self.current_meta["percent"] = pct
+                        self.current_meta["percent"] = (curr_time / duration) * 100
 
                     if state == vlc.State.Ended or state == vlc.State.Error:
                         break
                     time.sleep(0.5)
+
+        
 
                 
                 # Monitor Loop
@@ -403,8 +399,6 @@ class TVStationService:
 
             
             
-        self.current_meta = {"title": "Offline", "show": "", "percent": 0}
-
         player.stop()
         self.current_meta = {"title": "Offline", "show": "", "percent": 0}
 
@@ -457,6 +451,42 @@ class TVStationService:
             
         # Update Scheduler's in-memory history so Library tab refreshes correctly
         self.scheduler.history = self.scheduler._load_history()
+
+    def _load_bug_sequence(self):
+        """
+        Scans assets/bugs/bug1 for a PNG sequence and builds the VLC Logo String.
+        """
+        bug_dir = os.path.join(app_dir, "assets", "bugs", "bug1")
+        self.logo_string = ""
+        self.bug_duration = 0
+        
+        if os.path.exists(bug_dir):
+            # 1. Get all PNGs and sort them (Crucial for correct animation order)
+            files = sorted([f for f in os.listdir(bug_dir) if f.lower().endswith(".png")])
+            
+            if files:
+                print(f"Found {len(files)} frames in {bug_dir}")
+                
+                # 2. Calculate Frame Delay
+                # 29.97 fps = 33.36ms per frame. We use 33ms (approx).
+                frame_delay = 33 
+                
+                # 3. Build the Sequence String
+                # Syntax: path,delay,alpha;path,delay,alpha;...
+                seq_parts = []
+                for f in files:
+                    full_path = os.path.join(bug_dir, f)
+                    # VLC requires forward slashes even on Windows
+                    clean_path = full_path.replace("\\", "/")
+                    seq_parts.append(f"{clean_path},{frame_delay},255")
+                
+                self.logo_string = ";".join(seq_parts)
+                self.bug_duration = (len(files) * frame_delay) / 1000.0
+                print(f"Bug Sequence Ready: {self.bug_duration}s duration")
+            else:
+                print("WARNING: Bug folder exists but contains no PNGs.")
+        else:
+            print(f"WARNING: Bug folder not found: {bug_dir}")
 
 class StationManagerApp:
     def __init__(self, root):
@@ -734,46 +764,27 @@ class StationManagerApp:
                 self.ep_tree.focus(item_id) # Set focus back to item
 
     def toggle_station(self):
+        # 1. Check the STATION'S running status
         if not self.station.running:
-            # 1. Create the Main Video Window (Black Background)
+            # 2. Create the Main Video Window (Black Background)
             self.video_window = tk.Toplevel(self.root)
             self.video_window.title("TV Station Broadcast")
             self.video_window.configure(bg="black")
             self.video_window.attributes("-fullscreen", True)
             
-            # Bind Escape to exit
             self.video_window.bind("<Escape>", lambda e: self.toggle_station())
             self.video_window.protocol("WM_DELETE_WINDOW", self.toggle_station)
             self.video_window.update()
             
-            # 2. Create the Bug Window (For the WebM)
-            self.bug_window = tk.Toplevel(self.video_window)
-            self.bug_window.configure(bg="black") 
-            self.bug_window.overrideredirect(True) # Frameless
+            # 3. Start Broadcast (Pass ONLY the main window ID)
+            window_id = self.video_window.winfo_id()
+            self.station.start_broadcast(window_id)
             
-            # Size: 200x150 (Adjust this to match your WebM aspect ratio)
-            # Position: Bottom Right
-            screen_w = self.video_window.winfo_screenwidth()
-            screen_h = self.video_window.winfo_screenheight()
-            self.bug_window.geometry(f"300x200+{screen_w-350}+{screen_h-250}")
-            self.bug_window.update()
-
-            # 3. WIN32 MAGIC: Embed the Bug Window INSIDE the Video Window
-            main_hwnd = self.video_window.winfo_id()
-            bug_hwnd = self.bug_window.winfo_id()
-            ctypes.windll.user32.SetParent(bug_hwnd, main_hwnd)
-
-            # 4. Start Broadcast (Passing BOTH window IDs)
-            self.station.start_broadcast(main_hwnd, bug_hwnd)
             self.btn_start.config(text="⏹ STOP STATION", bg="red")
         
         else:
             self.station.stop_broadcast()
             
-            if hasattr(self, 'bug_window') and self.bug_window:
-                self.bug_window.destroy()
-                self.bug_window = None
-
             if hasattr(self, 'video_window') and self.video_window:
                 self.video_window.destroy()
                 self.video_window = None
