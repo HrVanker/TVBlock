@@ -180,18 +180,25 @@ class TVStationService:
         vlc_args = [
             "--no-video-title-show", "--quiet", 
             "--file-caching=10000", "--network-caching=10000",
-            "--sub-filter=logo",    # Enable Filter
-            "--logo-opacity=0",     # Start Invisible
-            "--logo-x=50",          # Set X Global
-            "--logo-y=50",          # Set Y Global
-            "--logo-position=10"    # Set Position Global (Bottom-Right)
+            "--sub-filter=logo",    # Enable Filter Engine
+            "--logo-opacity=255",   # Ready to show
+            "--logo-position=10",   # Bottom-Right
+            "--logo-x=50", "--logo-y=50" # Offsets
         ]
-        if hasattr(self, 'logo_string') and self.logo_string:
-            vlc_args.append(f"--logo-file={self.logo_string}")
-
         vlc_instance = vlc.Instance(vlc_args)
         player = vlc_instance.media_player_new()
         player.set_hwnd(self.window_id)
+
+        # PRE-LOAD LOGO (If available)
+        # We set the file immediately so VLC loads the texture into memory.
+        # It remains invisible because opacity starts at 0.
+        if hasattr(self, 'static_bug_path') and self.static_bug_path:
+            player.video_set_logo_string(1, self.static_bug_path)
+            player.video_set_logo_int(0, 1) # Enable filter
+
+        while self.running:
+            current_content = self.scheduler.get_next_item()
+            current_playlist = self._prepare_playlist(current_content)
 
         while self.running:
             current_content = self.scheduler.get_next_item()
@@ -287,48 +294,75 @@ class TVStationService:
                 player.set_media(media)
                 player.play()
 
-                time.sleep(2.0) 
-                
-                # --- BUG LOGIC (Trigger Only) ---
+                # --- FADE ENGINE STATE ---
+                bug_state = "HIDDEN" 
                 start_time = time.time()
-                last_bug_time = start_time
-                bug_triggered = False 
-
+                fade_start_time = 0
+                
+                # CONFIGURATION
+                TRIGGER_TIME = 5.0   # Seconds into video to start
+                FADE_DURATION = 1.5  # Seconds to fade in/out
+                HOLD_DURATION = 10.0 # Seconds to stay fully visible
+                
                 duration = player.get_length()
                 
+                # Ensure start is invisible
+                player.video_set_logo_int(6, 0) 
+
                 while self.running:
                     state = player.get_state()
                     current_time = time.time()
-                    elapsed = current_time - last_bug_time
+                    elapsed = current_time - start_time
 
-                    # TRIGGER BUG AT 5 SECONDS
-                    if elapsed >= 5 and not bug_triggered:
-                        # We don't load the string here anymore.
-                        # We just Reset and Enable.
-                        
-                        # 1. Reset (Disable)
-                        player.video_set_logo_int(0, 0)
-                        
-                        # 2. Set Opacity to Max
-                        player.video_set_logo_int(6, 255)
-                        
-                        # 3. GO! (Enable)
-                        # This restarts the pre-loaded sequence from Frame 0
-                        player.video_set_logo_int(0, 1)
-                            
-                        bug_triggered = True 
-
-                    # TURN OFF BUG
-                    if bug_triggered and elapsed >= (5 + self.bug_duration):
-                        player.video_set_logo_int(0, 0)
+                    # --- STATE MACHINE ---
                     
+                    # 1. START FADE IN
+                    if bug_state == "HIDDEN" and elapsed >= TRIGGER_TIME:
+                        print("Bug: Starting Fade In")
+                        bug_state = "FADING_IN"
+                        fade_start_time = current_time
+
+                    # 2. CALCULATE FADE IN
+                    elif bug_state == "FADING_IN":
+                        progress = (current_time - fade_start_time) / FADE_DURATION
+                        if progress >= 1.0:
+                            player.video_set_logo_int(6, 255) # Max Opacity
+                            bug_state = "VISIBLE"
+                            fade_start_time = current_time # Reset timer for hold
+                        else:
+                            # Calculate linear fade (0 -> 255)
+                            new_opacity = int(progress * 255)
+                            player.video_set_logo_int(6, new_opacity)
+
+                    # 3. HOLD VISIBLE
+                    elif bug_state == "VISIBLE":
+                        if (current_time - fade_start_time) >= HOLD_DURATION:
+                            print("Bug: Starting Fade Out")
+                            bug_state = "FADING_OUT"
+                            fade_start_time = current_time
+
+                    # 4. CALCULATE FADE OUT
+                    elif bug_state == "FADING_OUT":
+                        progress = (current_time - fade_start_time) / FADE_DURATION
+                        if progress >= 1.0:
+                            player.video_set_logo_int(6, 0) # Fully invisible
+                            bug_state = "DONE"
+                        else:
+                            # Calculate linear fade (255 -> 0)
+                            new_opacity = 255 - int(progress * 255)
+                            player.video_set_logo_int(6, new_opacity)
+
+                    # ---------------------
+
                     if duration > 0:
                         curr_time = player.get_time()
                         self.current_meta["percent"] = (curr_time / duration) * 100
 
                     if state == vlc.State.Ended or state == vlc.State.Error:
                         break
-                    time.sleep(0.1)
+                    
+                    # Short sleep is fine here; math runs fast enough
+                    time.sleep(0.05)
                 
                 # Monitor Loop
                 while self.running:
@@ -456,66 +490,28 @@ class TVStationService:
 
     def _load_bug_sequence(self):
         """
-        Builds the Optimized Animation Sequence + Safety Stop.
+        Loads a single STATIC frame (Frame 71) to use for the fade engine.
         """
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        bug_dir = os.path.join(base_dir, "assets", "bugs", "bug1")
+        # We look specifically for the frame you mentioned is part of the static block
+        target_frame = "0051.png"
+        bug_path = os.path.join(base_dir, "assets", "bugs", "bug1", target_frame)
         
-        self.logo_string = ""
-        self.bug_duration = 0
+        self.static_bug_path = ""
         
-        if os.path.exists(bug_dir):
-            files = sorted([f for f in os.listdir(bug_dir) if f.lower().endswith(".png")])
-            
-            if len(files) > 400:
-                # --- OPTIMIZATION LOGIC ---
-                intro_end_idx = 70      
-                hold_frame_idx = 70     
-                outro_start_idx = 433   
-                FRAME_DELAY = 33 
-                
-                seq_parts = []
-                
-                # 1. INTRO
-                for f in files[:intro_end_idx]:
-                    path = self._get_rel_path(bug_dir, f, base_dir)
-                    seq_parts.append(f"{path},{FRAME_DELAY},255")
-                
-                # 2. HOLD (12 seconds)
-                skipped_count = outro_start_idx - hold_frame_idx
-                hold_duration = skipped_count * FRAME_DELAY
-                path = self._get_rel_path(bug_dir, files[hold_frame_idx], base_dir)
-                seq_parts.append(f"{path},{hold_duration},255")
-                
-                # 3. OUTRO
-                for f in files[outro_start_idx:]:
-                    path = self._get_rel_path(bug_dir, f, base_dir)
-                    seq_parts.append(f"{path},{FRAME_DELAY},255")
-                    
-                # 4. SAFETY STOP (New)
-                # Repeats the last frame but invisible, for a long time.
-                # This prevents the global filter from looping back to the intro.
-                last_frame = files[-1]
-                path = self._get_rel_path(bug_dir, last_frame, base_dir)
-                seq_parts.append(f"{path},100000,0") 
-
-                self.logo_string = ";".join(seq_parts)
-                
-                # Duration calculation (Intro + Hold + Outro)
-                total_ms = (len(files[:intro_end_idx]) * FRAME_DELAY) + hold_duration + (len(files[outro_start_idx:]) * FRAME_DELAY)
-                self.bug_duration = total_ms / 1000.0
-                
-                print(f"Bug Pre-Loaded! Duration: {self.bug_duration}s")
-            else:
-                print("WARNING: Not enough frames.")
+        if os.path.exists(bug_path):
+            # Convert to forward slashes for VLC
+            self.static_bug_path = bug_path.replace("\\", "/")
+            print(f"Bug Loaded: Using static master frame: {self.static_bug_path}")
         else:
-            print(f"WARNING: Bug folder not found: {bug_dir}")
-
-    def _get_rel_path(self, folder, filename, base):
-        """Helper to get clean relative path for VLC"""
-        full = os.path.join(folder, filename)
-        rel = os.path.relpath(full, base)
-        return rel.replace("\\", "/")
+            print(f"WARNING: Could not find master frame {target_frame}. Checking folder...")
+            # Fallback: Just grab the first PNG found
+            bug_dir = os.path.join(base_dir, "assets", "bugs", "bug1")
+            if os.path.exists(bug_dir):
+                files = [f for f in os.listdir(bug_dir) if f.endswith(".png")]
+                if files:
+                    self.static_bug_path = os.path.join(bug_dir, files[0]).replace("\\", "/")
+                    print(f"Fallback: Using {files[0]}")
 
 class StationManagerApp:
     def __init__(self, root):
