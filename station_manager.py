@@ -141,7 +141,10 @@ class TVStationService:
         self.running = False
 
     def skip_current(self):
-        self.skip_flag = True
+        """Signal the broadcast loop to skip the current video."""
+        if self.running:
+            print("USER COMMAND: SKIP")
+            self.skip_flag = True
 
     def save_config(self):
         """Saves current config (blacklist changes) to disk"""
@@ -266,7 +269,14 @@ class TVStationService:
                 
                 duration = player.get_length()
                 
+                # --- MONITOR LOOP (Standard) ---
                 while self.running:
+                    # CHECK FOR SKIP
+                    if self.skip_flag:
+                        player.stop()
+                        self.skip_flag = False # Reset flag
+                        break # Break inner loop -> goes to next file in playlist
+                    
                     state = player.get_state()
                     
                     if duration > 0:
