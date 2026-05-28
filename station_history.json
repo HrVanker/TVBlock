@@ -18,8 +18,8 @@
             "show": "Batman - The Animated Series",
             "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x20 - I've Got Batman in My Basement.mkv",
             "status": "partial",
-            "percent_watched": 6.1,
-            "last_played": "2026-02-05 00:19:24.656512"
+            "percent_watched": 12.73,
+            "last_played": "2026-05-28 01:54:54.651990"
         },
         "The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4": {
             "show": "Pete & Pete",
@@ -55,6 +55,27 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-01-26 16:36:30.592928"
+        },
+        "The Simpsons - 3x13 - Radio Bart.avi": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 3\\The Simpsons - 3x13 - Radio Bart.avi",
+            "status": "partial",
+            "percent_watched": 11.36,
+            "last_played": "2026-05-28 01:45:55.385168"
+        },
+        "The Simpsons - 8x02 - You Only Move Twice.m4v": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 8\\The Simpsons - 8x02 - You Only Move Twice.m4v",
+            "status": "partial",
+            "percent_watched": 6.34,
+            "last_played": "2026-05-28 01:51:20.992381"
+        },
+        "Star Trek Deep Space Nine - 4x07 - Starship Down.mkv": {
+            "show": "Star Trek Deep Space Nine",
+            "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S4\\Star Trek Deep Space Nine - 4x07 - Starship Down.mkv",
+            "status": "partial",
+            "percent_watched": 8.57,
+            "last_played": "2026-05-28 03:50:59.228656"
         }
     }
 }
