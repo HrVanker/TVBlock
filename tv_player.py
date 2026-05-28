@@ -114,10 +114,11 @@ def main(parent_gui=None):
 
     # --- 3. MAIN PLAYBACK LOOP ---
     
-    # Define the path to your bug and the FFmpeg filter string
+    # Define the path to your bug
     bug_path = os.path.join(BASE_DIR, "assets", "bug.webm")
-    # Note: FFmpeg paths in filters sometimes need forward slashes, so we replace them just in case!
     bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
+    
+    bug_filter_graph = f"movie=filename='{bug_path_ffmpeg}':loop=0,setpts=N/FRAME_RATE/TB[logo];[in][logo]overlay=W-w-50:H-h-50"
     
     # The filter graph: Load the bug, loop it, and put it in the bottom right corner (50px padding)
     bug_filter = f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,setpts=N/FRAME_RATE/TB[logo];[in][logo]overlay=main_w-overlay_w-50:main_h-overlay_h-50]"
@@ -143,7 +144,7 @@ def main(parent_gui=None):
 
                 # --- TURN ON THE BUG ---
                 if os.path.exists(bug_path):
-                    player.vf = [bug_filter]
+                    player.vf = [{"name": "lavfi", "graph": bug_filter_graph}]
                 else:
                     print(f"DEBUG: Bug asset not found at {bug_path}, playing without bug.")
 
