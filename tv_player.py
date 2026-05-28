@@ -118,7 +118,7 @@ def main(parent_gui=None):
     bug_path = os.path.join(BASE_DIR, "assets", "bug.webm")
     bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
     
-    bug_filter_graph = f"movie=filename='{bug_path_ffmpeg}':loop=0,setpts=N/FRAME_RATE/TB[logo];[in][logo]overlay=W-w-50:H-h-50"
+    bug_filter_graph = "movie=filename='assets/bug.webm':loop=0,setpts=N/FRAME_RATE/TB[logo];[in][logo]overlay=W-w-50:H-h-50"
     
 
     try:
