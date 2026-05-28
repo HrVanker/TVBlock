@@ -120,8 +120,6 @@ def main(parent_gui=None):
     
     bug_filter_graph = f"movie=filename='{bug_path_ffmpeg}':loop=0,setpts=N/FRAME_RATE/TB[logo];[in][logo]overlay=W-w-50:H-h-50"
     
-    # The filter graph: Load the bug, loop it, and put it in the bottom right corner (50px padding)
-    bug_filter = f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,setpts=N/FRAME_RATE/TB[logo];[in][logo]overlay=main_w-overlay_w-50:main_h-overlay_h-50]"
 
     try:
         while True:
