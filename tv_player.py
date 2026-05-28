@@ -109,17 +109,19 @@ def main(parent_gui=None):
         keep_open=True, 
         input_default_bindings=True, 
         input_vo_keyboard=True,
-        log_handler=lambda level, prefix, text: print(f"MPV [{level}] {prefix}: {text}") if level in ['error', 'warning'] else None
+        # REMOVED the 'if level in' restriction so we see EVERYTHING
+        log_handler=lambda level, prefix, text: print(f"MPV [{level}] {prefix}: {text}")
     )
 
     # --- 3. MAIN PLAYBACK LOOP ---
     
-    # Define the path to your bug
+    # 1. Build the absolute path and format it perfectly for FFmpeg on Windows
     bug_path = os.path.join(BASE_DIR, "assets", "bug.webm")
+    # Swap backslashes to forward slashes, and escape the drive letter colon (C:/ -> C\:/)
     bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
     
-    bug_filter_graph = "movie=filename='assets/bug.webm':loop=0,setpts=N/FRAME_RATE/TB[logo];[in][logo]overlay=W-w-50:H-h-50"
-    
+    # 2. Define the raw lavfi string
+    bug_filter_string = f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,setpts=N/FRAME_RATE/TB[logo];[in][logo]overlay=W-w-50:H-h-50]"
 
     try:
         while True:
@@ -140,14 +142,22 @@ def main(parent_gui=None):
                 except:
                     current_video_state["duration"] = 1320000
 
+                # --- PLAY THE VIDEO FIRST ---
+                player.play(content['path'])
+                
+                # Give mpv a tiny fraction of a second to initialize the video track
+                time.sleep(0.5) 
+
                 # --- TURN ON THE BUG ---
                 if os.path.exists(bug_path):
-                    player.vf = [{"name": "lavfi", "graph": bug_filter_graph}]
+                    try:
+                        # Use direct core command: Add filter with the label '@stationbug'
+                        player.command("vf", "add", f"@stationbug:{bug_filter_string}")
+                    except Exception as e:
+                        print(f"DEBUG: Failed to add bug filter: {e}")
                 else:
                     print(f"DEBUG: Bug asset not found at {bug_path}, playing without bug.")
 
-                # Play the video
-                player.play(content['path'])
                 player.wait_for_playback()
 
                 # Save history
@@ -158,8 +168,11 @@ def main(parent_gui=None):
                 current_video_state["path"] = None 
                 
                 # --- TURN OFF THE BUG ---
-                # Clearing the video filters removes the overlay for commercials
-                player.vf = []
+                try:
+                    # Remove the filter by its label
+                    player.command("vf", "remove", "@stationbug")
+                except Exception:
+                    pass # It's okay if it fails (e.g., if it was never added)
 
                 clips = comm_manager.generate_break(content['min'], content['max'])
                 
