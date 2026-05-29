@@ -160,11 +160,25 @@ class TVStationService:
                     self.current_meta.update({"show": "Commercial Break", "title": "Messages"})
 
                 # --- BUMPER SEQUENCE ---
-                if current_content['type'] == 'break':
-                    print("--- GENERATING UP NEXT BUMPER ---")
+                # 1. CALCULATE TRUE COMMERCIAL DURATION
+                    # Start with 15 seconds to account for the Bumper itself
+                    real_comm_duration = 15 
+                    from tinytag import TinyTag
                     
-                    comm_duration = random.randint(current_content['min'], current_content['max'])
-                    upcoming_shows = self.scheduler.get_upcoming_durations(limit=3)
+                    for clip in current_playlist:
+                        try:
+                            tag = TinyTag.get(clip)
+                            if tag.duration:
+                                real_comm_duration += tag.duration
+                        except Exception:
+                            # Safe fallback if a commercial file can't be read
+                            real_comm_duration += 30 
+                            
+                    comm_duration = int(real_comm_duration)
+                    
+                    # 2. SYNC LIMIT WITH COMMERCIAL FREQUENCY
+                    comm_freq = self.config.get("settings", {}).get("commercial_frequency", 3)
+                    upcoming_shows = self.scheduler.get_upcoming_durations(limit=comm_freq)
 
                     bg_folder = os.path.join(app_dir, "assets", "bg")
                     bumper_bg = None
@@ -181,8 +195,16 @@ class TVStationService:
                     player.play(bumper_bg)
                     time.sleep(0.5) 
 
-                    bg_width = player.dwidth if player.dwidth else 1920
-                    bg_height = player.dheight if player.dheight else 1080
+                    # Actively wait for MPV to initialize the video track and report its 
+                    # true physical pixel count, bypassing the 1/4-size scaling issue.
+                    timeout = time.time() + 5.0 # 5-second safety timeout
+                    while player.dwidth is None and time.time() < timeout and self.running:
+                        time.sleep(0.1) 
+
+                    # Now we grab the actual physical screen dimensions
+                    bg_width = 1920
+                    bg_height = 1080
+                    print(f"DEBUG: OSD Canvas mapped at {bg_width}x{bg_height}")
 
                     temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
                     self.gfx_engine.generate_transparent_bumper(
@@ -196,8 +218,32 @@ class TVStationService:
                     temp_overlay_ffmpeg = temp_overlay.replace("\\", "/").replace(":", "\\:")
                     bumper_filter = f"lavfi=[movie=filename='{temp_overlay_ffmpeg}'[logo];[in][logo]overlay=0:0]"
                     
-                    try: player.command("vf", "add", f"@bumper:{bumper_filter}")
-                    except: pass
+                    try:
+                        # 1. Open the image with Pillow
+                        img = Image.open(temp_overlay)
+                        
+                        # 2. Convert to RGBA and swap to BGRA order
+                        img = img.convert("RGBA")
+                        r, g, b, a = img.split()
+                        img_bgra = Image.merge("RGBA", (b, g, r, a))
+                        img_bytes = img_bgra.tobytes()
+                        
+                        # 3. Bypass Windows pointer issues by saving the raw bytes to a file
+                        bgra_path = os.path.join(app_dir, "assets", "temp_overlay.bgra")
+                        with open(bgra_path, "wb") as f:
+                            f.write(img_bytes)
+                        
+                        # 4. Calculate width, height, and stride (bytes per row)
+                        w, h = img.size
+                        stride = w * 4 
+                        
+                        # 5. Format path for MPV core (just forward slashes needed here)
+                        bgra_path_mpv = bgra_path.replace("\\", "/")
+                        
+                        # 6. Send the raw command to the MPV core!
+                        player.command("overlay-add", 1, 0, 0, bgra_path_mpv, 0, "bgra", w, h, stride)
+                    except Exception as e:
+                        print(f"DEBUG: Native OSD Bumper Error: {e}")
 
                     bug_filter = self._get_random_bug_filter()
                     if bug_filter:
@@ -205,15 +251,29 @@ class TVStationService:
                         except: pass
 
                     # Wait for Bumper to end, allow skipping
+                    bumper_start_time = time.time()
+                    bumper_duration = 15  # Set your desired interstitial length in seconds
+                    
                     while not getattr(player, 'idle_active', True) and self.running:
+                        # 1. Check for manual user skip
                         if self.skip_flag:
                             player.command("stop")
                             self.skip_flag = False
                             break
+                            
+                        # 2. Check if our 15-second timer has expired
+                        if time.time() - bumper_start_time >= bumper_duration:
+                            print("DEBUG: Bumper time limit reached. Moving to commercials.")
+                            player.command("stop")
+                            break
+                            
                         time.sleep(0.1)
 
-                    try: player.command("vf", "remove", "@bumper")
+                    # Remove bumper native OSD graphic
+                    try: player.command("overlay-remove", 1) 
                     except: pass
+                    
+                    # Remove the animated station bug
                     try: player.command("vf", "remove", "@stationbug")
                     except: pass
                     

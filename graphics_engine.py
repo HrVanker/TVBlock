@@ -4,7 +4,7 @@ import datetime
 import time
 
 class GraphicsEngine:
-    def __init__(self, font_path="assets/comiclemon.ttf", resolution=(1920, 1080)):
+    def __init__(self, font_path="assets/MonoPolz.ttf", resolution=(1920, 1080)):
         self.font_path = font_path
         self.width, self.height = resolution
 
@@ -18,14 +18,14 @@ class GraphicsEngine:
 
         # 2. RESPONSIVE MATH (Calculate sizes as % of screen height/width)
         # Margins: 10% from the edges
-        SAFE_X = int(target_width * 0.1)
+        SAFE_X = int(target_width * 0.05)
         SAFE_Y = int(target_height * 0.1)
 
         # Fonts: Sized relative to screen height
-        header_size = int(target_height * 0.086) 
-        up_size = int(target_height * 0.066)
-        show_size = int(target_height * 0.046)
-        time_size = int(target_height * 0.037)
+        header_size = int(target_height * 0.096) 
+        up_size = int(target_height * 0.076)
+        show_size = int(target_height * 0.056)
+        time_size = int(target_height * 0.047)
 
         header_font = ImageFont.truetype(self.font_path, header_size)
         up_font = ImageFont.truetype(self.font_path, up_size)
