@@ -124,23 +124,35 @@ class TVStationService:
         if hasattr(self, 'scheduler'):
             self.scheduler._init_queues() 
 
+    def _get_random_bug_filter(self):
+        """Picks a random GIF from assets/bugs and returns the FFmpeg filter string."""
+        bug_dir = os.path.join(app_dir, "assets", "bugs")
+        
+        if not os.path.exists(bug_dir):
+            return None
+            
+        # Find all GIFs in the folder
+        bugs = [f for f in os.listdir(bug_dir) if f.lower().endswith('.gif')]
+        if not bugs:
+            return None
+            
+        # Pick a random bug and format the path for FFmpeg
+        selected_bug = random.choice(bugs)
+        bug_path = os.path.join(bug_dir, selected_bug)
+        bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
+        
+        # Scale to 100px height (adjust if needed) and place in bottom right
+        bug_height = 100
+        return f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,scale=-1:{bug_height},setsar=1[logo];[in][logo]overlay=W-w-50:H-h-50]"
+
     def _broadcast_loop(self):
         # --- 1. MPV SETUP ---
-        # 'wid' embeds the player directly into the Tkinter window ID we pass!
         player = mpv.MPV(
             wid=self.window_id,
             input_default_bindings=True,
             input_vo_keyboard=True,
-            # Turn on logs to catch any filter errors
             log_handler=lambda level, prefix, text: print(f"MPV [{level}] {prefix}: {text}") if level in ['error', 'warning'] else None
         )
-
-        # Bug Filter Setup
-        bug_path = os.path.join(app_dir, "assets", "bug1.gif")
-        bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
-
-        bug_height = 100
-        bug_filter_string = f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,setpts=N/FRAME_RATE/TB,scale=-1:{bug_height},setsar=1[logo];[in][logo]overlay=W-w-50:H-h-50]"
 
         while self.running:
             current_content = self.scheduler.get_next_item()
@@ -172,15 +184,11 @@ class TVStationService:
                 if not bumper_bg:
                     bumper_bg = os.path.join(app_dir, "assets", "up_next_bg.mp4")
 
-                # Play Bumper Background
                 player.play(bumper_bg)
-                
-                # Give MPV a moment to start the video and grab the real dimensions
                 time.sleep(0.5) 
 
                 bg_width = player.dwidth if player.dwidth else 1920
                 bg_height = player.dheight if player.dheight else 1080
-                print(f"DEBUG: Auto-detected video resolution as {bg_width}x{bg_height}")
 
                 temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
                 self.gfx_engine.generate_transparent_bumper(
@@ -191,7 +199,7 @@ class TVStationService:
                     target_height=bg_height
                 )
 
-                # Apply the Bumper PNG via FFmpeg overlay
+                # Apply the Bumper Text PNG
                 temp_overlay_ffmpeg = temp_overlay.replace("\\", "/").replace(":", "\\:")
                 bumper_filter = f"lavfi=[movie=filename='{temp_overlay_ffmpeg}'[logo];[in][logo]overlay=0:0]"
                 
@@ -200,15 +208,23 @@ class TVStationService:
                 except Exception as e:
                     print(f"DEBUG: Bumper Overlay Error: {e}")
 
-                # idle_active is True when MPV has finished playing the file
+                # --- ADD A RANDOM BUG TO THE BUMPER ---
+                bug_filter = self._get_random_bug_filter()
+                if bug_filter:
+                    try:
+                        player.command("vf", "add", f"@stationbug:{bug_filter}")
+                    except Exception as e:
+                        print(f"DEBUG: Bumper Bug Overlay Error: {e}")
+
+                # Wait for Bumper to end
                 while not player.idle_active and self.running:
                     time.sleep(0.1)
 
-                # Remove the bumper filter
-                try:
-                    player.command("vf", "remove", "@bumper")
-                except:
-                    pass
+                # Remove bumper filters
+                try: player.command("vf", "remove", "@bumper")
+                except: pass
+                try: player.command("vf", "remove", "@stationbug")
+                except: pass
                 
                 print("--- COMMERCIAL BREAK STARTING ---")
 
@@ -217,20 +233,18 @@ class TVStationService:
                 if not self.running: break
                 
                 player.play(filepath)
-                time.sleep(0.5) # Give it a moment to initialize
+                time.sleep(0.5)
                 
-                # Turn on the bug if it's a TV show!
-                if current_content['type'] == 'video' and os.path.exists(bug_path):
-                    try:
-                        player.command("vf", "add", f"@stationbug:{bug_filter_string}")
-                    except Exception as e:
-                        print(f"DEBUG: Bug Filter Error: {e}")
+                # Setup Bug Timers for TV Shows
+                mid_bug_shown = False
+                end_bug_shown = False
+                remove_bug_at_time = 0
+                bug_display_duration = 15 # How many seconds the bug stays on screen
                 
                 # --- MONITOR LOOP ---
                 while not player.idle_active and self.running:
                     # CHECK FOR SKIP
                     if self.skip_flag:
-                        # Fix: Calculate percentage properly before saving partial progress
                         duration = player.duration if player.duration else 0
                         curr_time = player.time_pos if player.time_pos else 0
                         pct = (curr_time / duration) * 100 if duration > 0 else 0
@@ -242,11 +256,38 @@ class TVStationService:
                         self.skip_flag = False
                         break 
                     
-                    # UPDATE PROGRESS BAR
+                    # TIMED BUG LOGIC
                     duration = player.duration if player.duration else 0
                     if duration > 0:
                         curr_time = player.time_pos if player.time_pos else 0
                         self.current_meta["percent"] = (curr_time / duration) * 100
+
+                        # Only do timed bugs on TV shows, not commercials
+                        if current_content['type'] == 'video':
+                            
+                            # Clean up the bug if its time is up
+                            if remove_bug_at_time > 0 and time.time() >= remove_bug_at_time:
+                                try: player.command("vf", "remove", "@stationbug")
+                                except: pass
+                                remove_bug_at_time = 0
+
+                            # Trigger 1: The Halfway Mark
+                            if not mid_bug_shown and curr_time >= (duration / 2):
+                                bug_filter = self._get_random_bug_filter()
+                                if bug_filter:
+                                    try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                    except: pass
+                                    remove_bug_at_time = time.time() + bug_display_duration
+                                mid_bug_shown = True
+
+                            # Trigger 2: The Final Minute (60 seconds remaining)
+                            if not end_bug_shown and curr_time >= (duration - 60):
+                                bug_filter = self._get_random_bug_filter()
+                                if bug_filter:
+                                    try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                    except: pass
+                                    remove_bug_at_time = time.time() + bug_display_duration
+                                end_bug_shown = True
                     
                     time.sleep(0.1)
 
@@ -255,10 +296,8 @@ class TVStationService:
                     self.update_history(current_content['show'], current_content['path'], "watched", 100)
 
                 # Ensure bug is removed before the next item plays
-                try:
-                    player.command("vf", "remove", "@stationbug")
-                except:
-                    pass
+                try: player.command("vf", "remove", "@stationbug")
+                except: pass
 
         # Cleanup on exit
         player.terminate()

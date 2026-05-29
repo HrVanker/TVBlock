@@ -76,6 +76,20 @@
             "status": "partial",
             "percent_watched": 8.57,
             "last_played": "2026-05-28 03:50:59.228656"
+        },
+        "Star Trek Deep Space Nine - 5x21 - Soldiers of the Empire.mkv": {
+            "show": "Star Trek Deep Space Nine",
+            "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S5\\Star Trek Deep Space Nine - 5x21 - Soldiers of the Empire.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-28 21:14:41.598223"
+        },
+        "The Simpsons - 8x08 - Hurricane Neddy.m4v": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 8\\The Simpsons - 8x08 - Hurricane Neddy.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-28 21:14:48.578465"
         }
     }
 }
