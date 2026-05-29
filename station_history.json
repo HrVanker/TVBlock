@@ -17,9 +17,9 @@
         "Batman The Animated Series - 1x20 - I've Got Batman in My Basement.mkv": {
             "show": "Batman - The Animated Series",
             "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x20 - I've Got Batman in My Basement.mkv",
-            "status": "partial",
-            "percent_watched": 12.73,
-            "last_played": "2026-05-28 01:54:54.651990"
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-28 21:36:10.013943"
         },
         "The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4": {
             "show": "Pete & Pete",
@@ -90,6 +90,41 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-05-28 21:14:48.578465"
+        },
+        "Star Trek Deep Space Nine - 4x21 - The Muse.mkv": {
+            "show": "Star Trek Deep Space Nine",
+            "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S4\\Star Trek Deep Space Nine - 4x21 - The Muse.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-28 21:19:04.737671"
+        },
+        "The Simpsons - 6x16 - Bart vs. Australia.avi": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 06\\The Simpsons - 6x16 - Bart vs. Australia.avi",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-28 21:19:07.892014"
+        },
+        "Star Trek Deep Space Nine - 4x22 - For the Cause.mkv": {
+            "show": "Star Trek Deep Space Nine",
+            "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S4\\Star Trek Deep Space Nine - 4x22 - For the Cause.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-28 21:35:11.677628"
+        },
+        "The Simpsons - 9x15 - The Last Temptation of Krust.m4v": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 9\\The Simpsons - 9x15 - The Last Temptation of Krust.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-28 21:35:15.722164"
+        },
+        "The Simpsons - 8x06 - A Milhouse Divided.m4v": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 8\\The Simpsons - 8x06 - A Milhouse Divided.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-28 21:36:06.606146"
         }
     }
 }

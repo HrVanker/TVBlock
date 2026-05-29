@@ -17,11 +17,12 @@ if getattr(sys, 'frozen', False):
 else:
     app_dir = os.path.dirname(os.path.abspath(__file__))
 
+# --- THE MPV DLL FIX ---
 if os.name == 'nt' and hasattr(os, 'add_dll_directory'):
     os.add_dll_directory(app_dir)
+
 import mpv
 
-# Import our custom modules
 from inventory_manager import InventoryManager
 from schedule_engine import ScheduleEngine
 from commercial_manager import CommercialManager
@@ -49,9 +50,6 @@ DEFAULT_CONFIG = {
 }
 
 class TVStationService:
-    """
-    Runs the MPV Player in a background thread so the GUI doesn't freeze.
-    """
     def __init__(self, gui_app):
         self.gui = gui_app
         self.running = False
@@ -127,184 +125,173 @@ class TVStationService:
     def _get_random_bug_filter(self):
         """Picks a random GIF from assets/bugs and returns the FFmpeg filter string."""
         bug_dir = os.path.join(app_dir, "assets", "bugs")
-        
         if not os.path.exists(bug_dir):
             return None
-            
-        # Find all GIFs in the folder
         bugs = [f for f in os.listdir(bug_dir) if f.lower().endswith('.gif')]
         if not bugs:
             return None
             
-        # Pick a random bug and format the path for FFmpeg
         selected_bug = random.choice(bugs)
         bug_path = os.path.join(bug_dir, selected_bug)
         bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
-        
-        # Scale to 100px height (adjust if needed) and place in bottom right
         bug_height = 100
         return f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,scale=-1:{bug_height},setsar=1[logo];[in][logo]overlay=W-w-50:H-h-50]"
 
     def _broadcast_loop(self):
-        # --- 1. MPV SETUP ---
-        player = mpv.MPV(
-            wid=self.window_id,
-            input_default_bindings=True,
-            input_vo_keyboard=True,
-            log_handler=lambda level, prefix, text: print(f"MPV [{level}] {prefix}: {text}") if level in ['error', 'warning'] else None
-        )
+        player = None
+        try:
+            # --- 1. MPV SETUP ---
+            player = mpv.MPV(
+                wid=self.window_id,
+                input_default_bindings=True,
+                input_vo_keyboard=True,
+                log_handler=lambda level, prefix, text: print(f"MPV [{level}] {prefix}: {text}") if level in ['error', 'warning'] else None
+            )
 
-        while self.running:
-            current_content = self.scheduler.get_next_item()
-            current_playlist = self._prepare_playlist(current_content)
-            
-            if current_content['type'] == 'video':
-                show_title = current_content.get('show', 'Unknown Show')
-                ep_title = os.path.basename(current_content.get('path', 'Unknown Episode'))
-                self.current_meta.update({"show": show_title, "title": ep_title})
-            elif current_content['type'] == 'break':
-                self.current_meta.update({"show": "Commercial Break", "title": "Messages"})
-
-            # --- BUMPER SEQUENCE ---
-            if current_content['type'] == 'break':
-                print("--- GENERATING UP NEXT BUMPER ---")
+            while self.running:
+                current_content = self.scheduler.get_next_item()
+                current_playlist = self._prepare_playlist(current_content)
                 
-                comm_duration = random.randint(current_content['min'], current_content['max'])
-                upcoming_shows = self.scheduler.get_upcoming_durations(limit=3)
+                if current_content['type'] == 'video':
+                    show_title = current_content.get('show', 'Unknown Show')
+                    ep_title = os.path.basename(current_content.get('path', 'Unknown Episode'))
+                    self.current_meta.update({"show": show_title, "title": ep_title})
+                elif current_content['type'] == 'break':
+                    self.current_meta.update({"show": "Commercial Break", "title": "Messages"})
 
-                bg_folder = os.path.join(app_dir, "assets", "bg")
-                bumper_bg = None
-
-                if os.path.exists(bg_folder):
-                    valid_exts = ('.mp4', '.mkv', '.avi', '.mov')
-                    files = [f for f in os.listdir(bg_folder) if f.lower().endswith(valid_exts)]
-                    if files:
-                        bumper_bg = os.path.join(bg_folder, random.choice(files))
-
-                if not bumper_bg:
-                    bumper_bg = os.path.join(app_dir, "assets", "up_next_bg.mp4")
-
-                player.play(bumper_bg)
-                time.sleep(0.5) 
-
-                bg_width = player.dwidth if player.dwidth else 1920
-                bg_height = player.dheight if player.dheight else 1080
-
-                temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
-                self.gfx_engine.generate_transparent_bumper(
-                    upcoming_shows, 
-                    comm_duration, 
-                    output_path=temp_overlay,
-                    target_width=bg_width, 
-                    target_height=bg_height
-                )
-
-                # Apply the Bumper Text PNG
-                temp_overlay_ffmpeg = temp_overlay.replace("\\", "/").replace(":", "\\:")
-                bumper_filter = f"lavfi=[movie=filename='{temp_overlay_ffmpeg}'[logo];[in][logo]overlay=0:0]"
-                
-                try:
-                    player.command("vf", "add", f"@bumper:{bumper_filter}")
-                except Exception as e:
-                    print(f"DEBUG: Bumper Overlay Error: {e}")
-
-                # --- ADD A RANDOM BUG TO THE BUMPER ---
-                bug_filter = self._get_random_bug_filter()
-                if bug_filter:
-                    try:
-                        player.command("vf", "add", f"@stationbug:{bug_filter}")
-                    except Exception as e:
-                        print(f"DEBUG: Bumper Bug Overlay Error: {e}")
-
-                # Wait for Bumper to end
-                while not player.idle_active and self.running:
-                    time.sleep(0.1)
-
-                # Remove bumper filters
-                try: player.command("vf", "remove", "@bumper")
-                except: pass
-                try: player.command("vf", "remove", "@stationbug")
-                except: pass
-                
-                print("--- COMMERCIAL BREAK STARTING ---")
-
-            # --- PLAY CHUNK (Shows or Commercials) ---
-            for filepath in current_playlist:
-                if not self.running: break
-                
-                player.play(filepath)
-                time.sleep(0.5)
-                
-                # Setup Bug Timers for TV Shows
-                mid_bug_shown = False
-                end_bug_shown = False
-                remove_bug_at_time = 0
-                bug_display_duration = 15 # How many seconds the bug stays on screen
-                
-                # --- MONITOR LOOP ---
-                while not player.idle_active and self.running:
-                    # CHECK FOR SKIP
-                    if self.skip_flag:
-                        duration = player.duration if player.duration else 0
-                        curr_time = player.time_pos if player.time_pos else 0
-                        pct = (curr_time / duration) * 100 if duration > 0 else 0
-                        
-                        if current_content['type'] == 'video' and pct > 5:
-                            self.update_history(current_content['show'], current_content['path'], "partial", pct)
-                        
-                        player.stop()
-                        self.skip_flag = False
-                        break 
+                # --- BUMPER SEQUENCE ---
+                if current_content['type'] == 'break':
+                    print("--- GENERATING UP NEXT BUMPER ---")
                     
-                    # TIMED BUG LOGIC
-                    duration = player.duration if player.duration else 0
-                    if duration > 0:
-                        curr_time = player.time_pos if player.time_pos else 0
-                        self.current_meta["percent"] = (curr_time / duration) * 100
+                    comm_duration = random.randint(current_content['min'], current_content['max'])
+                    upcoming_shows = self.scheduler.get_upcoming_durations(limit=3)
 
-                        # Only do timed bugs on TV shows, not commercials
-                        if current_content['type'] == 'video':
+                    bg_folder = os.path.join(app_dir, "assets", "bg")
+                    bumper_bg = None
+
+                    if os.path.exists(bg_folder):
+                        valid_exts = ('.mp4', '.mkv', '.avi', '.mov')
+                        files = [f for f in os.listdir(bg_folder) if f.lower().endswith(valid_exts)]
+                        if files:
+                            bumper_bg = os.path.join(bg_folder, random.choice(files))
+
+                    if not bumper_bg:
+                        bumper_bg = os.path.join(app_dir, "assets", "up_next_bg.mp4")
+
+                    player.play(bumper_bg)
+                    time.sleep(0.5) 
+
+                    bg_width = player.dwidth if player.dwidth else 1920
+                    bg_height = player.dheight if player.dheight else 1080
+
+                    temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
+                    self.gfx_engine.generate_transparent_bumper(
+                        upcoming_shows, 
+                        comm_duration, 
+                        output_path=temp_overlay,
+                        target_width=bg_width, 
+                        target_height=bg_height
+                    )
+
+                    temp_overlay_ffmpeg = temp_overlay.replace("\\", "/").replace(":", "\\:")
+                    bumper_filter = f"lavfi=[movie=filename='{temp_overlay_ffmpeg}'[logo];[in][logo]overlay=0:0]"
+                    
+                    try: player.command("vf", "add", f"@bumper:{bumper_filter}")
+                    except: pass
+
+                    bug_filter = self._get_random_bug_filter()
+                    if bug_filter:
+                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                        except: pass
+
+                    # Wait for Bumper to end, allow skipping
+                    while not getattr(player, 'idle_active', True) and self.running:
+                        if self.skip_flag:
+                            player.command("stop")
+                            self.skip_flag = False
+                            break
+                        time.sleep(0.1)
+
+                    try: player.command("vf", "remove", "@bumper")
+                    except: pass
+                    try: player.command("vf", "remove", "@stationbug")
+                    except: pass
+                    
+                    print("--- COMMERCIAL BREAK STARTING ---")
+
+                # --- PLAY CHUNK (Shows or Commercials) ---
+                for filepath in current_playlist:
+                    if not self.running: break
+                    
+                    player.play(filepath)
+                    time.sleep(0.5)
+                    
+                    mid_bug_shown = False
+                    end_bug_shown = False
+                    remove_bug_at_time = 0
+                    bug_display_duration = 15 
+                    
+                    # --- MONITOR LOOP ---
+                    while not getattr(player, 'idle_active', True) and self.running:
+                        # CHECK FOR SKIP
+                        if self.skip_flag:
+                            duration = player.duration if player.duration else 0
+                            curr_time = player.time_pos if player.time_pos else 0
+                            pct = (curr_time / duration) * 100 if duration > 0 else 0
                             
-                            # Clean up the bug if its time is up
-                            if remove_bug_at_time > 0 and time.time() >= remove_bug_at_time:
-                                try: player.command("vf", "remove", "@stationbug")
-                                except: pass
-                                remove_bug_at_time = 0
+                            if current_content['type'] == 'video' and pct > 5:
+                                self.update_history(current_content['show'], current_content['path'], "partial", pct)
+                            
+                            player.command("stop")
+                            self.skip_flag = False
+                            break 
+                        
+                        # TIMED BUG LOGIC
+                        duration = player.duration if player.duration else 0
+                        if duration > 0:
+                            curr_time = player.time_pos if player.time_pos else 0
+                            self.current_meta["percent"] = (curr_time / duration) * 100
 
-                            # Trigger 1: The Halfway Mark
-                            if not mid_bug_shown and curr_time >= (duration / 2):
-                                bug_filter = self._get_random_bug_filter()
-                                if bug_filter:
-                                    try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                            if current_content['type'] == 'video':
+                                if remove_bug_at_time > 0 and time.time() >= remove_bug_at_time:
+                                    try: player.command("vf", "remove", "@stationbug")
                                     except: pass
-                                    remove_bug_at_time = time.time() + bug_display_duration
-                                mid_bug_shown = True
+                                    remove_bug_at_time = 0
 
-                            # Trigger 2: The Final Minute (60 seconds remaining)
-                            if not end_bug_shown and curr_time >= (duration - 60):
-                                bug_filter = self._get_random_bug_filter()
-                                if bug_filter:
-                                    try: player.command("vf", "add", f"@stationbug:{bug_filter}")
-                                    except: pass
-                                    remove_bug_at_time = time.time() + bug_display_duration
-                                end_bug_shown = True
-                    
-                    time.sleep(0.1)
+                                if not mid_bug_shown and curr_time >= (duration / 2):
+                                    bug_filter = self._get_random_bug_filter()
+                                    if bug_filter:
+                                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                        except: pass
+                                        remove_bug_at_time = time.time() + bug_display_duration
+                                    mid_bug_shown = True
 
-                # Save history when video finishes naturally
-                if current_content['type'] == 'video' and not self.skip_flag and self.running:
-                    self.update_history(current_content['show'], current_content['path'], "watched", 100)
+                                if not end_bug_shown and curr_time >= (duration - 60):
+                                    bug_filter = self._get_random_bug_filter()
+                                    if bug_filter:
+                                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                        except: pass
+                                        remove_bug_at_time = time.time() + bug_display_duration
+                                    end_bug_shown = True
+                        
+                        time.sleep(0.1)
 
-                # Ensure bug is removed before the next item plays
-                try: player.command("vf", "remove", "@stationbug")
+                    if current_content['type'] == 'video' and not self.skip_flag and self.running:
+                        self.update_history(current_content['show'], current_content['path'], "watched", 100)
+
+                    try: player.command("vf", "remove", "@stationbug")
+                    except: pass
+
+        except Exception as e:
+            # We catch the ShutdownError silently so the app doesn't crash visually
+            print(f"DEBUG: Broadcast Loop Terminated Safely.")
+        finally:
+            if player:
+                try: player.terminate()
                 except: pass
-
-        # Cleanup on exit
-        player.terminate()
-        self.current_meta = {"title": "Offline", "show": "", "percent": 0}
+            self.current_meta = {"title": "Offline", "show": "", "percent": 0}
 
     def _prepare_playlist(self, content):
-        """Helper to convert content item into a list of file paths"""
         playlist = []
         if content['type'] == 'video':
             if content.get('path'): 
@@ -339,8 +326,6 @@ class TVStationService:
             json.dump(history, f, indent=4)
             
         self.scheduler.history = self.scheduler._load_history()
-
-# --- THE REST OF YOUR APP (StationManagerApp) REMAINS EXACTLY THE SAME ---
 
 class StationManagerApp:
     def __init__(self, root):
@@ -547,17 +532,20 @@ class StationManagerApp:
             self.video_window.protocol("WM_DELETE_WINDOW", self.toggle_station)
             self.video_window.update()
             
-            # Start Broadcast (Pass the Tkinter window ID directly to mpv)
             window_id = self.video_window.winfo_id()
             self.station.start_broadcast(window_id)
-            
             self.btn_start.config(text="⏹ STOP STATION", bg="red")
         else:
             self.station.stop_broadcast()
-            if hasattr(self, 'video_window') and self.video_window:
-                self.video_window.destroy()
-                self.video_window = None
+            
+            # THE FIX: Wait 0.5s for MPV to process stop_broadcast safely before destroying the window
+            self.root.after(500, self._destroy_video_window)
             self.btn_start.config(text="▶ START STATION", bg="green")
+
+    def _destroy_video_window(self):
+        if hasattr(self, 'video_window') and self.video_window:
+            self.video_window.destroy()
+            self.video_window = None
 
     def update_ui_loop(self):
         meta = self.station.current_meta
