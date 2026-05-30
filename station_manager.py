@@ -192,20 +192,40 @@ class TVStationService:
                     if not bumper_bg:
                         bumper_bg = os.path.join(app_dir, "assets", "up_next_bg.mp4")
 
-                    player.play(bumper_bg)
-                    time.sleep(0.5) 
+                    # --- 2. FIND BACKGROUND MUSIC ---
+                    music_folder = os.path.join(app_dir, "assets", "music")
+                    bumper_music = None
+                    
+                    if os.path.exists(music_folder):
+                        valid_audio = ('.mp3', '.wav', '.ogg', '.m4a', '.flac')
+                        music_files = [f for f in os.listdir(music_folder) if f.lower().endswith(valid_audio)]
+                        if music_files:
+                            bumper_music = os.path.join(music_folder, random.choice(music_files))
 
-                    # Actively wait for MPV to initialize the video track and report its 
-                    # true physical pixel count, bypassing the 1/4-size scaling issue.
-                    timeout = time.time() + 5.0 # 5-second safety timeout
+                    # --- 3. START PLAYBACK ---
+                    player.play(bumper_bg)
+                    
+                    # Wait for physical window dimensions to initialize
+                    timeout = time.time() + 5.0 
                     while player.dwidth is None and time.time() < timeout and self.running:
                         time.sleep(0.1) 
 
-                    # Now we grab the actual physical screen dimensions
                     bg_width = 1920
                     bg_height = 1080
                     print(f"DEBUG: OSD Canvas mapped at {bg_width}x{bg_height}")
 
+                    # --- 4. INJECT THE MUSIC TRACK ---
+                    if bumper_music:
+                        try:
+                            # Format path for MPV
+                            music_path_mpv = bumper_music.replace("\\", "/")
+                            # audio-add [path] "select" forces MPV to mute the video and play the music
+                            player.command("audio-add", music_path_mpv, "select")
+                            print(f"DEBUG: Playing Bumper Music: {os.path.basename(bumper_music)}")
+                        except Exception as e:
+                            print(f"DEBUG: Failed to add bumper music: {e}")
+
+                    # --- 5. GENERATE & APPLY GRAPHICS ---
                     temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
                     self.gfx_engine.generate_transparent_bumper(
                         upcoming_shows, 

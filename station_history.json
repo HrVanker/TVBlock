@@ -19,7 +19,7 @@
             "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x20 - I've Got Batman in My Basement.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-29 01:14:36.117181"
+            "last_played": "2026-05-29 18:43:51.941499"
         },
         "The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4": {
             "show": "Pete & Pete",
@@ -33,7 +33,7 @@
             "path": "D:\\Media\\Shows\\The X-Files\\Season 01\\The X-Files - 1x01 - Pilot.avi",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-28 21:49:40.146494"
+            "last_played": "2026-05-29 02:50:56.686063"
         },
         "The Kids in the Hall - 2x16 - #216.mkv": {
             "show": "The Kids in the Hall",
@@ -110,7 +110,7 @@
             "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S4\\Star Trek Deep Space Nine - 4x22 - For the Cause.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-28 21:35:11.677628"
+            "last_played": "2026-05-29 18:43:47.258645"
         },
         "The Simpsons - 9x15 - The Last Temptation of Krust.m4v": {
             "show": "The Simpsons",
@@ -124,7 +124,7 @@
             "path": "D:\\Media\\Shows\\The Simpsons\\Season 8\\The Simpsons - 8x06 - A Milhouse Divided.m4v",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-28 21:36:06.606146"
+            "last_played": "2026-05-29 02:50:45.684122"
         },
         "Star Trek Deep Space Nine - 3x12 - Past Tense (2).mkv": {
             "show": "Star Trek Deep Space Nine",
@@ -208,7 +208,7 @@
             "path": "D:\\Media\\Shows\\Twin Peaks\\Season 1\\Twin Peaks - 1x01 - Northwest Passage.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-28 21:49:42.106913"
+            "last_played": "2026-05-29 02:50:57.936132"
         },
         "Star Trek The Next Generation - 1x10 - Hide and Q.mkv": {
             "show": "Star Trek The Next Generation",
@@ -313,14 +313,14 @@
             "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S4\\Star Trek Deep Space Nine - 4x05 - Indiscretion.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-28 22:05:09.803721"
+            "last_played": "2026-05-29 02:48:48.454271"
         },
         "The Simpsons - 5x07 - Bart's Inner Child.mp4": {
             "show": "The Simpsons",
             "path": "D:\\Media\\Shows\\The Simpsons\\Season 5\\The Simpsons - 5x07 - Bart's Inner Child.mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-28 22:05:13.966457"
+            "last_played": "2026-05-29 02:50:46.405809"
         },
         "Star Trek Deep Space Nine - 3x18 - Distant Voices.mkv": {
             "show": "Star Trek Deep Space Nine",
@@ -531,6 +531,139 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-05-29 01:14:41.116409"
+        },
+        "The Simpsons - 4x14 - Brother From the Same Planet.mp4": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 4\\The Simpsons - 4x14 - Brother From the Same Planet.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:48:49.773446"
+        },
+        "The Simpsons - 4x12 - Marge vs. the Monorail.mp4": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 4\\The Simpsons - 4x12 - Marge vs. the Monorail.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:48:50.752696"
+        },
+        "The Adventures of Pete & Pete - 3x11 - O' Christmas Pete.mp4": {
+            "show": "Pete & Pete",
+            "path": "D:\\Media\\Shows\\Pete & Pete\\Season 3\\The Adventures of Pete & Pete - 3x11 - O' Christmas Pete.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:48:52.787084"
+        },
+        "Arrested Development - 2x12 - Hand to God.mkv": {
+            "show": "Arrested Development",
+            "path": "D:\\Media\\Shows\\Arrested Development\\Season 2\\Arrested Development - 2x12 - Hand to God.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:49:19.800837"
+        },
+        "Star Trek The Next Generation - 1x01 & 1x02 - Encounter at Farpoint.mkv": {
+            "show": "Star Trek The Next Generation",
+            "path": "D:\\Media\\Shows\\Star Trek The Next Generation\\S1\\Star Trek The Next Generation - 1x01 & 1x02 - Encounter at Farpoint.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:49:21.854520"
+        },
+        "The Simpsons - 7x06 - Treehouse of Horror VI.m4v": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 7\\The Simpsons - 7x06 - Treehouse of Horror VI.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:49:23.286942"
+        },
+        "The Simpsons - 5x14 - Lisa vs. Malibu Stacy.mp4": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 5\\The Simpsons - 5x14 - Lisa vs. Malibu Stacy.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:49:43.395173"
+        },
+        "Batman The Animated Series - 1x21 - Vendetta.mkv": {
+            "show": "Batman - The Animated Series",
+            "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x21 - Vendetta.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:49:44.556663"
+        },
+        "Rocko's Modern Life - 2x08 - Boob Tubed.avi": {
+            "show": "Rocko's Modern Life",
+            "path": "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 2\\Rocko's Modern Life - 2x08 - Boob Tubed.avi",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:49:45.497213"
+        },
+        "South Park - 13x13 - Dances With Smurfs.m4v": {
+            "show": "South Park",
+            "path": "D:\\Media\\Shows\\South Park\\Season 13\\South Park - 13x13 - Dances With Smurfs.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:49:46.783778"
+        },
+        "The X-Files - 1x02 - Deep Throat.avi": {
+            "show": "The X-Files",
+            "path": "D:\\Media\\Shows\\The X-Files\\Season 01\\The X-Files - 1x02 - Deep Throat.avi",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:49:48.783180"
+        },
+        "Star Trek Deep Space Nine - 3x22 - Explorers.mkv": {
+            "show": "Star Trek Deep Space Nine",
+            "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S3\\Star Trek Deep Space Nine - 3x22 - Explorers.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:50:44.440747"
+        },
+        "The Adventures of Pete & Pete - 3x03 - The Good, the Bad, and the Lucky.mp4": {
+            "show": "Pete & Pete",
+            "path": "D:\\Media\\Shows\\Pete & Pete\\Season 3\\The Adventures of Pete & Pete - 3x03 - The Good, the Bad, and the Lucky.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:50:48.323568"
+        },
+        "Arrested Development - 1x15 - Staff Infection.mkv": {
+            "show": "Arrested Development",
+            "path": "D:\\Media\\Shows\\Arrested Development\\Season 01\\Arrested Development - 1x15 - Staff Infection.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:50:55.804341"
+        },
+        "Star Trek The Next Generation - 3x08 - The Price.mkv": {
+            "show": "Star Trek The Next Generation",
+            "path": "D:\\Media\\Shows\\Star Trek The Next Generation\\S3\\Star Trek The Next Generation - 3x08 - The Price.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:50:59.202153"
+        },
+        "The Simpsons - 7x23 - Much Apu About Nothing.m4v": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 7\\The Simpsons - 7x23 - Much Apu About Nothing.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 02:51:02.858084"
+        },
+        "The Simpsons - 4x03 - Homer the Heretic.mp4": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 4\\The Simpsons - 4x03 - Homer the Heretic.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 18:43:48.538050"
+        },
+        "The Simpsons - 9x20 - The Trouble With Trillions.m4v": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 9\\The Simpsons - 9x20 - The Trouble With Trillions.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 18:43:49.366018"
+        },
+        "The Adventures of Pete & Pete - 3x07 - Last Laugh.mp4": {
+            "show": "Pete & Pete",
+            "path": "D:\\Media\\Shows\\Pete & Pete\\Season 3\\The Adventures of Pete & Pete - 3x07 - Last Laugh.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 18:43:55.724474"
         }
     }
 }
