@@ -19,7 +19,7 @@
             "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x20 - I've Got Batman in My Basement.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-29 18:43:51.941499"
+            "last_played": "2026-05-29 18:50:46.929678"
         },
         "The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4": {
             "show": "Pete & Pete",
@@ -664,6 +664,34 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-05-29 18:43:55.724474"
+        },
+        "Star Trek Deep Space Nine - 4x14 - Return to Grace.mkv": {
+            "show": "Star Trek Deep Space Nine",
+            "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S4\\Star Trek Deep Space Nine - 4x14 - Return to Grace.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 18:50:43.699253"
+        },
+        "The Simpsons - 8x20 - The Canine Mutiny.m4v": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 8\\The Simpsons - 8x20 - The Canine Mutiny.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 18:50:44.746417"
+        },
+        "The Simpsons - 6x12 - Homer the Great.avi": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 06\\The Simpsons - 6x12 - Homer the Great.avi",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 18:50:45.642884"
+        },
+        "The Adventures of Pete & Pete - 3x05 - Dance Fever.mp4": {
+            "show": "Pete & Pete",
+            "path": "D:\\Media\\Shows\\Pete & Pete\\Season 3\\The Adventures of Pete & Pete - 3x05 - Dance Fever.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-29 18:50:48.963978"
         }
     }
 }
