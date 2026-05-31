@@ -134,8 +134,8 @@ class TVStationService:
         selected_bug = random.choice(bugs)
         bug_path = os.path.join(bug_dir, selected_bug)
         bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
-        bug_height = 100
-        return f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,scale=-1:{bug_height},setsar=1[logo];[in][logo]overlay=W-w-50:H-h-50]"
+        bug_height = 50
+        return f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,scale=-1:{bug_height},setsar=1[logo];[in][logo]overlay=W-w-25:H-h-25]"
 
     def _broadcast_loop(self):
         player = None
@@ -229,7 +229,9 @@ class TVStationService:
 
                     # --- 5. GENERATE & APPLY GRAPHICS ---
                     temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
-                    self.gfx_engine.generate_transparent_bumper(
+                    
+                    # Returns a tuple: ("flair", "file.png") OR ("qa", "file_q.png", "file_a.png")
+                    bumper_data = self.gfx_engine.generate_transparent_bumper(
                         upcoming_shows, 
                         comm_duration, 
                         output_path=temp_overlay,
@@ -237,35 +239,26 @@ class TVStationService:
                         target_height=bg_height
                     )
 
-                    temp_overlay_ffmpeg = temp_overlay.replace("\\", "/").replace(":", "\\:")
-                    bumper_filter = f"lavfi=[movie=filename='{temp_overlay_ffmpeg}'[logo];[in][logo]overlay=0:0]"
-                    
-                    try:
-                        # 1. Open the image with Pillow
-                        img = Image.open(temp_overlay)
-                        
-                        # 2. Convert to RGBA and swap to BGRA order
-                        img = img.convert("RGBA")
-                        r, g, b, a = img.split()
-                        img_bgra = Image.merge("RGBA", (b, g, r, a))
-                        img_bytes = img_bgra.tobytes()
-                        
-                        # 3. Bypass Windows pointer issues by saving the raw bytes to a file
-                        bgra_path = os.path.join(app_dir, "assets", "temp_overlay.bgra")
-                        with open(bgra_path, "wb") as f:
-                            f.write(img_bytes)
-                        
-                        # 4. Calculate width, height, and stride (bytes per row)
-                        w, h = img.size
-                        stride = w * 4 
-                        
-                        # 5. Format path for MPV core (just forward slashes needed here)
-                        bgra_path_mpv = bgra_path.replace("\\", "/")
-                        
-                        # 6. Send the raw command to the MPV core!
-                        player.command("overlay-add", 1, 0, 0, bgra_path_mpv, 0, "bgra", w, h, stride)
-                    except Exception as e:
-                        print(f"DEBUG: Native OSD Bumper Error: {e}")
+                    # Helper function to convert PNG to BGRA and send to MPV OSD
+                    def apply_osd(img_path):
+                        try:
+                            img = Image.open(img_path).convert("RGBA")
+                            r, g, b, a = img.split()
+                            img_bgra = Image.merge("RGBA", (b, g, r, a))
+                            
+                            bgra_path = os.path.join(app_dir, "assets", "temp_overlay.bgra")
+                            with open(bgra_path, "wb") as f:
+                                f.write(img_bgra.tobytes())
+                            
+                            w, h = img.size
+                            bgra_path_mpv = bgra_path.replace("\\", "/")
+                            # Overwrites Overlay ID 1 instantly
+                            player.command("overlay-add", 1, 0, 0, bgra_path_mpv, 0, "bgra", w, h, w * 4)
+                        except Exception as e:
+                            print(f"DEBUG: Native OSD Bumper Error: {e}")
+
+                    # Apply the first graphic (either Flair or the Question)
+                    apply_osd(bumper_data[1])
 
                     bug_filter = self._get_random_bug_filter()
                     if bug_filter:
@@ -274,17 +267,23 @@ class TVStationService:
 
                     # Wait for Bumper to end, allow skipping
                     bumper_start_time = time.time()
-                    bumper_duration = 14  # Set your desired interstitial length in seconds
+                    bumper_duration = 14  
+                    qa_swapped = False
                     
                     while not getattr(player, 'idle_active', True) and self.running:
-                        # 1. Check for manual user skip
+                        elapsed = time.time() - bumper_start_time
+                        
+                        # --- MID-BUMPER SWAP FOR Q&A ---
+                        if bumper_data[0] == "qa" and not qa_swapped and elapsed >= (bumper_duration / 2):
+                            apply_osd(bumper_data[2]) # Instantly swaps the OSD to the Answer PNG!
+                            qa_swapped = True
+
                         if self.skip_flag:
                             player.command("stop")
                             self.skip_flag = False
                             break
                             
-                        # 2. Check if our 15-second timer has expired
-                        if time.time() - bumper_start_time >= bumper_duration:
+                        if elapsed >= bumper_duration:
                             print("DEBUG: Bumper time limit reached. Moving to commercials.")
                             player.command("stop")
                             break
