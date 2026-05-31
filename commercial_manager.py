@@ -15,7 +15,7 @@ class CommercialManager:
             return
 
         print("--- Scanning Commercials (This may take a moment to read durations) ---")
-        valid_exts = {'.mp4', '.mkv', '.avi', '.mov', '.mpg'}
+        valid_exts = {'.mp4', '.mkv', '.avi', '.mov', '.mpg', '.webm'}
         
         for root, _, files in os.walk(self.commercials_path):
             for file in files:

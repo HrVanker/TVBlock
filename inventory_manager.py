@@ -5,7 +5,7 @@ from pathlib import Path
 class InventoryManager:
     def __init__(self):
         # Regex to find "Season 1", "S01", "s1", etc.
-        self.season_pattern = re.compile(r"(?:season|s)[\s\.]*(\d+)", re.IGNORECASE)
+        self.season_pattern = re.compile(r"(?:season|s)[\s\.]*(\d)", re.IGNORECASE)
         # Regex to find "1x01", "2x10", etc. inside a filename
         self.episode_pattern = re.compile(r"(\d+)[xX](\d+)")
         

@@ -142,6 +142,7 @@ class TVStationService:
         try:
             # --- 1. MPV SETUP ---
             player = mpv.MPV(
+                af='lavfi=[dynaudnorm=f=75:g=31:n=0:p=0.58]',
                 wid=self.window_id,
                 input_default_bindings=True,
                 input_vo_keyboard=True,
@@ -272,7 +273,7 @@ class TVStationService:
 
                     # Wait for Bumper to end, allow skipping
                     bumper_start_time = time.time()
-                    bumper_duration = 15  # Set your desired interstitial length in seconds
+                    bumper_duration = 14  # Set your desired interstitial length in seconds
                     
                     while not getattr(player, 'idle_active', True) and self.running:
                         # 1. Check for manual user skip
