@@ -222,6 +222,7 @@ class TVStationService:
                             music_path_mpv = bumper_music.replace("\\", "/")
                             # audio-add [path] "select" forces MPV to mute the video and play the music
                             player.command("audio-add", music_path_mpv, "select")
+                            player.volume = 75  # Lowers MPV volume to 35%
                             print(f"DEBUG: Playing Bumper Music: {os.path.basename(bumper_music)}")
                         except Exception as e:
                             print(f"DEBUG: Failed to add bumper music: {e}")
@@ -289,6 +290,8 @@ class TVStationService:
                             break
                             
                         time.sleep(0.1)
+
+                    player.volume = 100
 
                     # Remove bumper native OSD graphic
                     try: player.command("overlay-remove", 1) 

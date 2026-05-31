@@ -19,7 +19,7 @@
             "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x20 - I've Got Batman in My Basement.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-30 21:52:59.833498"
+            "last_played": "2026-05-30 21:58:21.148365"
         },
         "The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4": {
             "show": "Pete & Pete",
@@ -159,7 +159,7 @@
             "path": "D:\\Media\\Shows\\The Simpsons\\Season 4\\The Simpsons - 4x21 - Marge in Chains.mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-30 21:42:14.234388"
+            "last_played": "2026-05-30 21:55:43.330453"
         },
         "The Adventures of Pete & Pete - 2x01 - Grounded for Life.mp4": {
             "show": "Pete & Pete",
@@ -208,7 +208,7 @@
             "path": "D:\\Media\\Shows\\Twin Peaks\\Season 1\\Twin Peaks - 1x01 - Northwest Passage.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-30 21:44:14.362641"
+            "last_played": "2026-05-30 21:55:36.876098"
         },
         "Star Trek The Next Generation - 1x10 - Hide and Q.mkv": {
             "show": "Star Trek The Next Generation",
@@ -621,7 +621,7 @@
             "path": "D:\\Media\\Shows\\Pete & Pete\\Season 3\\The Adventures of Pete & Pete - 3x03 - The Good, the Bad, and the Lucky.mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-29 02:50:48.323568"
+            "last_played": "2026-05-30 21:58:22.761467"
         },
         "Arrested Development - 1x15 - Staff Infection.mkv": {
             "show": "Arrested Development",
@@ -845,7 +845,7 @@
             "path": "D:\\Media\\Shows\\The X-Files\\Season 09\\The X-Files - 9x01 - Nothing Important Happened Today (1).avi",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-30 21:44:13.200893"
+            "last_played": "2026-05-30 21:55:36.306977"
         },
         "Star Trek The Next Generation - 1x15 - 11001001.mkv": {
             "show": "Star Trek The Next Generation",
@@ -944,6 +944,62 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-05-30 21:52:59.085015"
+        },
+        "Arrested Development - 3x10 - Fakin' It.mkv": {
+            "show": "Arrested Development",
+            "path": "D:\\Media\\Shows\\Arrested Development\\Season 03\\Arrested Development - 3x10 - Fakin' It.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-30 21:55:35.114960"
+        },
+        "Star Trek The Next Generation - 2x13 - Time Squared.mkv": {
+            "show": "Star Trek The Next Generation",
+            "path": "D:\\Media\\Shows\\Star Trek The Next Generation\\S2\\Star Trek The Next Generation - 2x13 - Time Squared.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-30 21:55:40.399239"
+        },
+        "Star Trek Deep Space Nine - 3x17 - Visionary.mkv": {
+            "show": "Star Trek Deep Space Nine",
+            "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S3\\Star Trek Deep Space Nine - 3x17 - Visionary.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-30 21:58:18.800955"
+        },
+        "The Simpsons - 5x03 - Homer Goes to College.mp4": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 5\\The Simpsons - 5x03 - Homer Goes to College.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-30 21:57:43.759528"
+        },
+        "The Simpsons - 5x21 - Lady Bouvier's Lover.mp4": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 5\\The Simpsons - 5x21 - Lady Bouvier's Lover.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-30 21:57:44.909946"
+        },
+        "The Adventures of Pete & Pete - 3x06 - Crisis in the Love Zone.mp4": {
+            "show": "Pete & Pete",
+            "path": "D:\\Media\\Shows\\Pete & Pete\\Season 3\\The Adventures of Pete & Pete - 3x06 - Crisis in the Love Zone.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-30 21:57:49.142899"
+        },
+        "The Simpsons - 5x13 - Homer and Apu.mp4": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 5\\The Simpsons - 5x13 - Homer and Apu.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-30 21:58:19.437521"
+        },
+        "The Simpsons - 6x15 - Homie the Clown.avi": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 06\\The Simpsons - 6x15 - Homie the Clown.avi",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-05-30 21:58:20.382351"
         }
     }
 }
