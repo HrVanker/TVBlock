@@ -78,14 +78,14 @@ class GraphicsEngine:
         def paste_graphic(base_img, graphic_path):
             try:
                 g_img = Image.open(graphic_path).convert("RGBA")
-                target_height = 450
+                target_height = 725
                 aspect = g_img.width / g_img.height
                 target_width_g = int(target_height * aspect)
                 
                 g_img = g_img.resize((target_width_g, target_height), getattr(Image, 'Resampling', Image).LANCZOS)
                 
-                paste_x = target_width - SAFE_X - target_width_g
-                paste_y = SAFE_Y 
+                paste_x = target_width - 19 - target_width_g
+                paste_y = 10
                 base_img.paste(g_img, (paste_x, paste_y), mask=g_img)
             except Exception as e:
                 print(f"DEBUG: Failed to paste graphic {graphic_path}: {e}")

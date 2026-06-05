@@ -7,7 +7,7 @@
     "settings": {
         "enable_movies": false,
         "movie_frequency": 20,
-        "commercial_frequency": 5,
+        "commercial_frequency": 1,
         "commercial_min_sec": 123,
         "commercial_max_sec": 378
     },

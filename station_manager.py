@@ -222,7 +222,7 @@ class TVStationService:
                             music_path_mpv = bumper_music.replace("\\", "/")
                             # audio-add [path] "select" forces MPV to mute the video and play the music
                             player.command("audio-add", music_path_mpv, "select")
-                            player.volume = 75  # Lowers MPV volume to 35%
+                            player.volume = 90  # Lowers MPV volume to 35%
                             print(f"DEBUG: Playing Bumper Music: {os.path.basename(bumper_music)}")
                         except Exception as e:
                             print(f"DEBUG: Failed to add bumper music: {e}")
@@ -267,7 +267,7 @@ class TVStationService:
 
                     # Wait for Bumper to end, allow skipping
                     bumper_start_time = time.time()
-                    bumper_duration = 14  
+                    bumper_duration = 30
                     qa_swapped = False
                     
                     while not getattr(player, 'idle_active', True) and self.running:
