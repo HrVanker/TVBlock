@@ -143,7 +143,7 @@
                     "count": 1,
                     "mode": "random",
                     "sync_global": false,
-                    "path": "D:\\Media\\Music Videos\\They Might Be Giants - \uff02Doctor Worm\uff02 - KaBlam! [HD] [zTMvMkt-1ls].mp4"
+                    "path": "D:\\Media\\Music Videos\\Slint - Good Morning, Captain (Demo).mp4"
                 },
                 {
                     "type": "rotate",
@@ -151,13 +151,6 @@
                     "mode": "sequential",
                     "sync_global": false,
                     "group": "Star_Trek"
-                },
-                {
-                    "type": "music_video",
-                    "count": 1,
-                    "mode": "random",
-                    "sync_global": false,
-                    "path": "D:\\Media\\Music Videos\\Phish - 7\u29f827\u29f82022 - All Of These Dreams.mp4"
                 },
                 {
                     "type": "anchor",
@@ -202,7 +195,9 @@
                     "show": "Twin Peaks"
                 }
             ],
-            "bookmarks": {}
+            "bookmarks": {
+                "Star Trek The Next Generation": 1
+            }
         },
         "Test": {
             "settings": {

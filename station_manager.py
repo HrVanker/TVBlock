@@ -221,10 +221,27 @@ class TVStationService:
                 current_content = self.scheduler.get_next_item()
                 current_playlist = self._prepare_playlist(current_content)
                 
+                # --- METADATA EXTRACTION ---
+                mv_metadata = {}
                 if current_content['type'] == 'video':
                     show_title = current_content.get('show', 'Unknown Show')
                     ep_title = os.path.basename(current_content.get('path', 'Unknown Episode'))
                     self.current_meta.update({"show": show_title, "title": ep_title})
+                    
+                    # If it's a music video, scrape the MP3/MP4 tags!
+                    if show_title == "Music Video":
+                        from tinytag import TinyTag
+                        try:
+                            tag = TinyTag.get(current_content['path'])
+                            mv_metadata = {
+                                "artist": tag.artist,
+                                "title": tag.title,
+                                "album": tag.album,
+                                "year": tag.year
+                            }
+                        except Exception as e:
+                            print(f"DEBUG: Could not read music video tags: {e}")
+                            
                 elif current_content['type'] == 'break':
                     self.current_meta.update({"show": "Commercial Break", "title": "Messages"})
 
@@ -264,8 +281,8 @@ class TVStationService:
                     player.play(bumper_bg)
                     timeout = time.time() + 5.0 
                     while player.dwidth is None and time.time() < timeout and self.running: time.sleep(0.1) 
-                    bg_width = 1920
-                    bg_height = 1080
+                    bg_width = player.dwidth if player.dwidth else 1920
+                    bg_height = player.dheight if player.dheight else 1080
 
                     if bumper_music:
                         try:
@@ -328,13 +345,39 @@ class TVStationService:
                 for filepath in current_playlist:
                     if not self.running: break
                     player.play(filepath)
-                    time.sleep(0.5)
                     
+                    # Wait for video to initialize dimensions
+                    timeout = time.time() + 5.0
+                    while player.dwidth is None and time.time() < timeout and self.running: time.sleep(0.1)
+                    
+                    # Prepare MTV Graphic if applicable
+                    mtv_bug_path = os.path.join(app_dir, "assets", "mtv_bug.png")
+                    if mv_metadata:
+                        v_width = player.dwidth if player.dwidth else 1920
+                        v_height = player.dheight if player.dheight else 1080
+                        self.gfx_engine.generate_mtv_bug(mv_metadata, output_path=mtv_bug_path, target_width=v_width, target_height=v_height)
+
+                    def apply_mtv_osd():
+                        try:
+                            img = Image.open(mtv_bug_path).convert("RGBA")
+                            r, g, b, a = img.split()
+                            img_bgra = Image.merge("RGBA", (b, g, r, a))
+                            bgra_path = mtv_bug_path.replace(".png", ".bgra")
+                            with open(bgra_path, "wb") as f: f.write(img_bgra.tobytes())
+                            w, h = img.size
+                            player.command("overlay-add", 2, 0, 0, bgra_path.replace("\\", "/"), 0, "bgra", w, h, w * 4)
+                        except Exception as e: print(f"MTV Bug Error: {e}")
+
+                    # Timers
                     mid_bug_shown = False
                     end_bug_shown = False
-                    remove_bug_at_time = 0
-                    bug_display_duration = 15 
+                    remove_station_bug_at = 0
                     
+                    mtv_start_shown = False
+                    mtv_end_shown = False
+                    remove_mtv_bug_at = 0
+                    
+                    # --- MONITOR LOOP ---
                     while not getattr(player, 'idle_active', True) and self.running:
                         if self.skip_flag:
                             duration = player.duration if player.duration else 0
@@ -352,35 +395,61 @@ class TVStationService:
                             self.current_meta["percent"] = (curr_time / duration) * 100
 
                             if current_content['type'] == 'video':
-                                if remove_bug_at_time > 0 and time.time() >= remove_bug_at_time:
+                                
+                                # 1. Handle Station Logo Bug (FFmpeg)
+                                if remove_station_bug_at > 0 and time.time() >= remove_station_bug_at:
                                     try: player.command("vf", "remove", "@stationbug")
                                     except: pass
-                                    remove_bug_at_time = 0
+                                    remove_station_bug_at = 0
 
-                                if not mid_bug_shown and curr_time >= (duration / 2):
-                                    bug_filter = self._get_random_bug_filter()
-                                    if bug_filter:
-                                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
-                                        except: pass
-                                        remove_bug_at_time = time.time() + bug_display_duration
-                                    mid_bug_shown = True
+                                if current_content['show'] != "Music Video":
+                                    if not mid_bug_shown and curr_time >= (duration / 2):
+                                        bug_filter = self._get_random_bug_filter()
+                                        if bug_filter:
+                                            try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                            except: pass
+                                            remove_station_bug_at = time.time() + 15
+                                        mid_bug_shown = True
 
-                                if not end_bug_shown and curr_time >= (duration - 60):
-                                    bug_filter = self._get_random_bug_filter()
-                                    if bug_filter:
-                                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                    if not end_bug_shown and curr_time >= (duration - 60):
+                                        bug_filter = self._get_random_bug_filter()
+                                        if bug_filter:
+                                            try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                            except: pass
+                                            remove_station_bug_at = time.time() + 15
+                                        end_bug_shown = True
+                                
+                                # 2. Handle MTV Lower-Third Bug (OSD Layer 2)
+                                if current_content['show'] == "Music Video" and mv_metadata:
+                                    if remove_mtv_bug_at > 0 and time.time() >= remove_mtv_bug_at:
+                                        try: player.command("overlay-remove", 2)
                                         except: pass
-                                        remove_bug_at_time = time.time() + bug_display_duration
-                                    end_bug_shown = True
+                                        remove_mtv_bug_at = 0
+
+                                    # Flash at the start (0 to 10 seconds)
+                                    if not mtv_start_shown and curr_time < 10:
+                                        apply_mtv_osd()
+                                        mtv_start_shown = True
+                                        remove_mtv_bug_at = time.time() + 10
+
+                                    # Flash at the end (Last 10 seconds)
+                                    if not mtv_end_shown and curr_time >= (duration - 10) and duration > 20:
+                                        apply_mtv_osd()
+                                        mtv_end_shown = True
+                                        remove_mtv_bug_at = time.time() + 10
+
                         time.sleep(0.1)
 
+                    # Cleanup at the end of the video chunk
                     if current_content['type'] == 'video' and not self.skip_flag and self.running:
                         self.update_history(current_content['show'], current_content['path'], "watched", 100)
 
                     try: player.command("vf", "remove", "@stationbug")
                     except: pass
+                    try: player.command("overlay-remove", 2)
+                    except: pass
 
-        except Exception as e: print(f"DEBUG: Broadcast Loop Terminated Safely.")
+        except Exception as e: print(f"DEBUG: Broadcast Loop Terminated Safely. ({e})")
         finally:
             if player:
                 try: player.terminate()

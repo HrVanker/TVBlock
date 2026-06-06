@@ -565,7 +565,7 @@
             "path": "D:\\Media\\Shows\\Star Trek The Next Generation\\S1\\Star Trek The Next Generation - 1x01 & 1x02 - Encounter at Farpoint.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-29 02:49:21.854520"
+            "last_played": "2026-06-05 17:48:38.323569"
         },
         "The Simpsons - 7x06 - Treehouse of Horror VI.m4v": {
             "show": "The Simpsons",
@@ -1006,7 +1006,7 @@
             "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S2\\Star Trek Deep Space Nine - 2x06 - Melora.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-31 20:09:58.213158"
+            "last_played": "2026-06-05 18:03:45.303495"
         },
         "The Simpsons - 3x24 - Brother, Can You Spare Two Dimes.avi": {
             "show": "The Simpsons",
@@ -1545,7 +1545,14 @@
             "path": "D:\\Media\\Music Videos\\They Might Be Giants - \uff02Doctor Worm\uff02 - KaBlam! [HD] [zTMvMkt-1ls].mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 17:42:40.474071"
+            "last_played": "2026-06-05 17:48:21.057879"
+        },
+        "Talking Heads - Drugs.mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\Talking Heads - Drugs.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 17:59:02.839553"
         }
     }
 }

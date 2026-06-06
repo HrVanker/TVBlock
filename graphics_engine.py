@@ -122,3 +122,40 @@ class GraphicsEngine:
         else:
             img.save(output_path, "PNG")
             return ("none", output_path)
+
+    def generate_mtv_bug(self, metadata, output_path="mtv_bug.png", target_width=1920, target_height=1080):
+        """Generates a classic MTV/VH1 lower-third music video graphic."""
+        img = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Position in the lower-left corner
+        SAFE_X = int(target_width * 0.3)
+        SAFE_Y = int(target_height * 0.90) 
+
+        artist = metadata.get("artist") or "Unknown Artist"
+        title = metadata.get("title") or "Unknown Title"
+        album = metadata.get("album")
+        year = metadata.get("year") or "fuck"
+
+        # Font Scaling
+        artist_size = int(target_height * 0.045)
+        title_size = int(target_height * 0.035)
+
+        artist_font = ImageFont.truetype(self.font_path, artist_size)
+        title_font = ImageFont.truetype(self.font_path, title_size)
+
+        # Draw the text stack
+        y_offset = SAFE_Y
+        draw.text((SAFE_X, y_offset), artist, font=artist_font, fill=(255, 255, 255, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+        y_offset += int(artist_size * 1.2)
+        
+        draw.text((SAFE_X, y_offset), title, font=title_font, fill=(210, 210, 210, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+        y_offset += int(title_size * 1.2)
+        
+        if album:
+            draw.text((SAFE_X, y_offset), album + year, font=title_font, fill=(180, 180, 180, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+        elif not album:
+            draw.text((SAFE_X, y_offset), year, font=title_font, fill=(180, 180, 180, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+
+        img.save(output_path, "PNG")
+        return output_path
