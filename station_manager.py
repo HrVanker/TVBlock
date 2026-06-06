@@ -72,7 +72,7 @@ class SlotEditorDialog(tk.Toplevel):
         self.var_mode = tk.StringVar(value=c_mode)
         
         # Only TV Shows support complex modes. Movies default to Random
-        if s_type == "movie":
+        if s_type in ["movie", "music_video"]:
             tk.Label(frame, text="Random").grid(row=1, column=1, sticky=tk.W)
             self.var_mode.set("random")
             self.var_sync = tk.BooleanVar(value=False)
@@ -890,6 +890,10 @@ class StationManagerApp:
             elif s_type == "movie": 
                 if "path" in slot: name = os.path.basename(slot["path"])
                 else: name = "[Random Movie]"
+                sync_str = "-"
+            elif s_type == "music_video": 
+                if "path" in slot: name = os.path.basename(slot["path"])
+                else: name = "[Random Music Video]"
                 sync_str = "-"
                 
             self.sched_tree.insert("", tk.END, values=(s_type, name, count, mode, sync_str, override))

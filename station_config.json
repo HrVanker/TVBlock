@@ -139,12 +139,19 @@
             },
             "schedule_block": [
                 {
+                    "type": "music_video",
+                    "count": 1,
+                    "mode": "random",
+                    "sync_global": false,
+                    "path": "D:\\Media\\Music Videos\\Talking Heads - Drugs.mp4"
+                },
+                {
                     "type": "rotate",
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
                     "group": "Star_Trek",
-                    "resolved_show": "Star Trek Deep Space Nine"
+                    "resolved_show": "Star Trek The Next Generation"
                 },
                 {
                     "type": "anchor",
@@ -152,6 +159,12 @@
                     "mode": "sequential",
                     "sync_global": false,
                     "show": "The Simpsons"
+                },
+                {
+                    "type": "movie",
+                    "count": 1,
+                    "mode": "random",
+                    "sync_global": false
                 },
                 {
                     "type": "anchor",
@@ -174,7 +187,7 @@
                     "mode": "sequential",
                     "sync_global": false,
                     "group": "Comedy",
-                    "resolved_show": "The Kids in the Hall"
+                    "resolved_show": "South Park"
                 },
                 {
                     "type": "anchor",
@@ -189,13 +202,19 @@
                     "mode": "sequential",
                     "sync_global": false,
                     "show": "Twin Peaks"
+                },
+                {
+                    "type": "movie",
+                    "count": 1,
+                    "mode": "random",
+                    "sync_global": false
                 }
             ],
             "bookmarks": {
-                "Star Trek The Next Generation": 14,
-                "Star Trek Deep Space Nine": 14,
-                "The Simpsons": 14,
-                "Batman - The Animated Series": 14,
+                "Star Trek The Next Generation": 15,
+                "Star Trek Deep Space Nine": 16,
+                "The Simpsons": 17,
+                "Batman - The Animated Series": 15,
                 "Rocko's Modern Life": 8,
                 "The Kids in the Hall": 1,
                 "The X-Files": 2,

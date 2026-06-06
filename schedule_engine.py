@@ -34,6 +34,7 @@ class ScheduleEngine:
         
         # Tracking variables
         self.block_index = 0
+        self.slot_play_count = 0
         self.items_since_break = 0
 
         self._resolve_all_rotations()
@@ -232,11 +233,12 @@ class ScheduleEngine:
         # 2. Find the next valid video slot
         loop_guard = 0
         while loop_guard < len(schedule_block):
-            if self.block_index >= len(schedule_block):
+            if self.block_index >= len(schedule_block): 
                 self.block_index = 0
+                self.slot_play_count = 0
                 
             slot = schedule_block[self.block_index]
-            self.block_index += 1
+            target_count = slot.get("count", 1)
             
             s_type = slot.get("type")
             ep_path = None
@@ -273,21 +275,37 @@ class ScheduleEngine:
 
             if ep_path:
                 self.items_since_break += 1
-                return {
-                    "type": "video",
-                    "show": show_name,
-                    "display": os.path.basename(ep_path),
-                    "path": ep_path
-                }
                 
+                # --- FIX: THE COUNT BOOKKEEPING ---
+                self.slot_play_count += 1
+                if self.slot_play_count >= target_count:
+                    # We hit the target count. Reset the counter and move to the next block index.
+                    self.slot_play_count = 0
+                    self.block_index += 1
+                    
+                    # If this was a rotation group, roll a new show for the NEXT time we hit this slot
+                    if s_type == "rotate":
+                        group_shows = self.rotation_groups.get(slot.get("group"), [])
+                        if group_shows:
+                            slot["resolved_show"] = random.choice(group_shows)
+
+                return {"type": "video", "show": show_name, "display": os.path.basename(ep_path), "path": ep_path}
+                
+            # If no file was found, skip this slot and move on to prevent infinite loops
+            self.slot_play_count = 0
+            self.block_index += 1
             loop_guard += 1
 
         return {"type": "video", "show": "System", "display": "No Valid Media Found in Block", "path": None}
 
     def get_upcoming_list(self, limit=10):
         upcoming = []
+        
+        # Temporary variables to simulate the future without permanently changing the real bookmarks
         sim_block_idx = self.block_index
+        sim_slot_count = self.slot_play_count
         sim_items_since = self.items_since_break
+        
         channel_data = self._get_channel_data()
         schedule_block = channel_data.get("schedule_block", [])
         settings = channel_data.get("settings", {})
@@ -301,17 +319,30 @@ class ScheduleEngine:
                 sim_items_since = 0
                 continue
                 
-            if sim_block_idx >= len(schedule_block): sim_block_idx = 0
+            if sim_block_idx >= len(schedule_block): 
+                sim_block_idx = 0
+                sim_slot_count = 0
+                
             slot = schedule_block[sim_block_idx]
-            sim_block_idx += 1
+            target_count = slot.get("count", 1)
             
-            # --- FIX: Display the resolved show instead of the group container! ---
             if slot.get("type") == "rotate":
                 name = slot.get("resolved_show", slot.get("group"))
+            elif slot.get("type") == "movie":
+                name = "Feature Presentation" if not slot.get("path") else os.path.basename(slot.get("path"))
+            elif slot.get("type") == "music_video":
+                name = "Music Video" if not slot.get("path") else os.path.basename(slot.get("path"))
             else:
-                name = slot.get("show", slot.get("group", "Movie"))
+                name = slot.get("show", "Unknown")
                 
             upcoming.append({"type": "video", "show": name, "display": f"[{slot.get('mode', 'sequential').upper()}]"})
+            
+            # --- FIX: SIMULATE THE COUNT BOOKKEEPING ---
+            sim_slot_count += 1
+            if sim_slot_count >= target_count:
+                sim_slot_count = 0
+                sim_block_idx += 1
+                
             sim_items_since += 1
 
         return upcoming

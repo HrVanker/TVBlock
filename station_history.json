@@ -26,7 +26,7 @@
             "path": "D:\\Media\\Shows\\Pete & Pete\\Season 2\\The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 20:26:20.044743"
+            "last_played": "2026-06-05 20:38:30.155755"
         },
         "The X-Files - 1x01 - Pilot.avi": {
             "show": "The X-Files",
@@ -103,7 +103,7 @@
             "path": "D:\\Media\\Shows\\The Simpsons\\Season 06\\The Simpsons - 6x16 - Bart vs. Australia.avi",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-31 20:33:32.478297"
+            "last_played": "2026-06-05 20:39:55.970560"
         },
         "Star Trek Deep Space Nine - 4x22 - For the Cause.mkv": {
             "show": "Star Trek Deep Space Nine",
@@ -859,7 +859,7 @@
             "path": "D:\\Media\\Shows\\The Simpsons\\Season 06\\The Simpsons - 6x17 - Homer vs. Patty and Selma.avi",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-05-30 15:15:10.708336"
+            "last_played": "2026-06-05 20:39:57.185595"
         },
         "The Simpsons - 5x17 - Bart Gets an Elephant.mp4": {
             "show": "The Simpsons",
@@ -999,7 +999,7 @@
             "path": "D:\\Media\\Shows\\The Simpsons\\Season 06\\The Simpsons - 6x15 - Homie the Clown.avi",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 20:26:47.612388"
+            "last_played": "2026-06-05 20:28:02.494306"
         },
         "Star Trek Deep Space Nine - 2x06 - Melora.mkv": {
             "show": "Star Trek Deep Space Nine",
@@ -1482,7 +1482,7 @@
             "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S2\\Star Trek Deep Space Nine - 2x21 - The Maquis (2).mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 20:26:39.003352"
+            "last_played": "2026-06-05 20:39:55.077569"
         },
         "Star Trek Deep Space Nine - 2x25 - Tribunal.mkv": {
             "show": "Star Trek Deep Space Nine",
@@ -1552,7 +1552,7 @@
             "path": "D:\\Media\\Music Videos\\Talking Heads - Drugs.mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 17:59:02.839553"
+            "last_played": "2026-06-05 20:45:36.445344"
         },
         "Slint - Good Morning, Captain (Demo).mp4": {
             "show": "Music Video",
@@ -1874,7 +1874,7 @@
             "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S2\\Star Trek Deep Space Nine - 2x20 - The Maquis (1).mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 20:26:05.390554"
+            "last_played": "2026-06-05 20:28:00.010488"
         },
         "Batman The Animated Series - 1x33 - Cat Scratch Fever.mkv": {
             "show": "Batman - The Animated Series",
@@ -1895,14 +1895,56 @@
             "path": "D:\\Media\\Shows\\The X-Files\\Season 09\\The X-Files - 9x03 - D\u00e6monicus.avi",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 20:26:33.941044"
+            "last_played": "2026-06-05 20:38:34.050588"
         },
         "Twin Peaks - 1x03 - Zen, or the Skill to Catch a Killer.mkv": {
             "show": "Twin Peaks",
             "path": "D:\\Media\\Shows\\Twin Peaks\\Season 1\\Twin Peaks - 1x03 - Zen, or the Skill to Catch a Killer.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 20:26:36.344304"
+            "last_played": "2026-06-05 20:38:35.133037"
+        },
+        "Star Trek The Next Generation - 1x16 - Too Short a Season.mkv": {
+            "show": "Star Trek The Next Generation",
+            "path": "D:\\Media\\Shows\\Star Trek The Next Generation\\S1\\Star Trek The Next Generation - 1x16 - Too Short a Season.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 20:39:20.654781"
+        },
+        "Batman The Animated Series - 1x35 - Almost Got 'Im.mkv": {
+            "show": "Batman - The Animated Series",
+            "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x35 - Almost Got 'Im.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 20:38:22.977295"
+        },
+        "South Park - 13x02 - The Coon.m4v": {
+            "show": "South Park",
+            "path": "D:\\Media\\Shows\\South Park\\Season 13\\South Park - 13x02 - The Coon.m4v",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 20:38:31.666716"
+        },
+        "Star Trek The Next Generation - 1x17 - When the Bough Breaks.mkv": {
+            "show": "Star Trek The Next Generation",
+            "path": "D:\\Media\\Shows\\Star Trek The Next Generation\\S1\\Star Trek The Next Generation - 1x17 - When the Bough Breaks.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 20:38:45.423594"
+        },
+        "The Simpsons - 6x18 - A Star Is Burns.avi": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 06\\The Simpsons - 6x18 - A Star Is Burns.avi",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 20:38:47.610171"
+        },
+        "Terminator 2 Judgment Day (Director's Cut) - 1991.mp4": {
+            "show": "Feature Presentation",
+            "path": "D:\\Media\\Movies\\Terminator 2 Judgment Day (Director's Cut) - 1991\\Terminator 2 Judgment Day (Director's Cut) - 1991.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 20:39:53.670945"
         }
     }
 }
