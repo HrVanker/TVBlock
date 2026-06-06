@@ -16,10 +16,10 @@ class GraphicsEngine:
 
         # 2. RESPONSIVE MATH
         SAFE_X = int(target_width * 0.05)
-        SAFE_Y = int(target_height * 0.1)
+        SAFE_Y = int(target_height * 0.05)
 
         header_size = int(target_height * 0.096) 
-        up_size = int(target_height * 0.076)
+        up_size = int(target_height * 0.073)
         show_size = int(target_height * 0.056)
         time_size = int(target_height * 0.047)
 
@@ -28,12 +28,11 @@ class GraphicsEngine:
         show_font = ImageFont.truetype(self.font_path, show_size)
         time_font = ImageFont.truetype(self.font_path, time_size)
 
-        bbox = draw.textbbox((0, 0), "UP NEXT:", font=show_font)
-        actual_text_height = bbox[3] - bbox[1] 
-        line_height = int(actual_text_height * 1.5)
+        # Base the line height directly on the font size for safety
+        line_height = int(show_size * 1.6)
 
         # 3. Draw the Header
-        header_text = "WE'LL BE RIGHT BACK \n \n "
+        header_text = "WE'LL BE RIGHT BACK"
         draw.text((SAFE_X, SAFE_Y), header_text, font=header_font, fill=(255, 240, 120, 255), stroke_width=4, stroke_fill=(0,0,0,255))
         
         # 4. Calculate Times
@@ -43,9 +42,9 @@ class GraphicsEngine:
         tz_code = "PDT" if is_dst else "PST"
 
         # 5. Draw "UP NEXT:"
-        y_offset = SAFE_Y + (line_height * 3)
+        y_offset = SAFE_Y + (line_height * 1.1)
         draw.text((SAFE_X*1.5, y_offset), "COMING UP NEXT:", font=up_font, fill=(255, 240, 120, 255),stroke_width=4, stroke_fill=(0,0,0,255))
-        y_offset += (line_height *2)
+        y_offset += (line_height * 1.1)
 
         # 6. Draw Shows
         for show_name, duration in upcoming_shows[:4]:
@@ -55,17 +54,16 @@ class GraphicsEngine:
             time_width = int(draw.textlength(time_str, font=time_font))
             gap_padding = int(target_width * 0.02) 
 
-            draw.text((SAFE_X*1.75, y_offset),time_str + " | ", font=time_font, fill=(255, 210, 50, 255),stroke_width=4, stroke_fill=(0,0,0,255))
-            draw.text((SAFE_X*1.75 + time_width + gap_padding, y_offset),"    " + display_name, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+            draw.text((SAFE_X*1.75, y_offset), time_str + " | ", font=time_font, fill=(255, 210, 50, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+            draw.text((SAFE_X*1.75 + time_width + gap_padding, y_offset), "    " + display_name, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
 
             start_time += datetime.timedelta(seconds=duration)
-            y_offset += (line_height * 2)
+            y_offset += (line_height * 0.8)
 
         # --- 7. DRAW THE TOP-RIGHT GRAPHIC (FLAIR OR Q&A) ---
         flair_dir = os.path.join("assets", "flair")
         qa_dir = os.path.join("assets", "qa")
         
-        # Decide which mode to run based on available folders
         choices = []
         if os.path.exists(flair_dir) and any(f.endswith('.png') for f in os.listdir(flair_dir)):
             choices.append("flair")
@@ -78,20 +76,22 @@ class GraphicsEngine:
         def paste_graphic(base_img, graphic_path):
             try:
                 g_img = Image.open(graphic_path).convert("RGBA")
-                target_height = 725
+                
+                # FIX: Make the flair responsive! Set it to ~65% of the screen height.
+                target_height_g = int(target_height * 0.65)
                 aspect = g_img.width / g_img.height
-                target_width_g = int(target_height * aspect)
+                target_width_g = int(target_height_g * aspect)
                 
-                g_img = g_img.resize((target_width_g, target_height), getattr(Image, 'Resampling', Image).LANCZOS)
+                g_img = g_img.resize((target_width_g, target_height_g), getattr(Image, 'Resampling', Image).LANCZOS)
                 
-                paste_x = target_width - 19 - target_width_g
-                paste_y = 10
+                # FIX: Use safe margins instead of hardcoded 10px or 19px
+                paste_x = target_width - SAFE_X - target_width_g
+                paste_y = SAFE_Y
                 base_img.paste(g_img, (paste_x, paste_y), mask=g_img)
             except Exception as e:
                 print(f"DEBUG: Failed to paste graphic {graphic_path}: {e}")
             return base_img
 
-        # Output logic based on mode
         if mode == "flair":
             flair_files = [f for f in os.listdir(flair_dir) if f.lower().endswith('.png')]
             selected = random.choice(flair_files)
@@ -105,13 +105,11 @@ class GraphicsEngine:
             q_path = os.path.join(qa_dir, selected_qa, "q.png")
             a_path = os.path.join(qa_dir, selected_qa, "a.png")
             
-            # Generate Q Frame
             q_img = img.copy()
             if os.path.exists(q_path): q_img = paste_graphic(q_img, q_path)
             q_out = output_path.replace(".png", "_q.png")
             q_img.save(q_out, "PNG")
             
-            # Generate A Frame
             a_img = img.copy()
             if os.path.exists(a_path): a_img = paste_graphic(a_img, a_path)
             a_out = output_path.replace(".png", "_a.png")
@@ -124,38 +122,34 @@ class GraphicsEngine:
             return ("none", output_path)
 
     def generate_mtv_bug(self, metadata, output_path="mtv_bug.png", target_width=1920, target_height=1080):
-        """Generates a classic MTV/VH1 lower-third music video graphic."""
         img = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
-        # Position in the lower-left corner
-        SAFE_X = int(target_width * 0.3)
-        SAFE_Y = int(target_height * 0.90) 
+        SAFE_X = int(target_width * 0.05)
+        SAFE_Y = int(target_height * 0.85) 
 
-        artist = metadata.get("artist") or "Unknown Artist"
         title = metadata.get("title") or "Unknown Title"
-        album = metadata.get("album") or ""
-        year = metadata.get("year") or "test"
+        artist = metadata.get("artist") or "Unknown Artist"
+        album = metadata.get("album")
+        year = str(metadata.get("year", "")) 
 
-        # Font Scaling
-        artist_size = int(target_height * 0.045)
-        title_size = int(target_height * 0.035)
+        artist_size = int(target_height * 0.035)
+        title_size = int(target_height * 0.045)
 
         artist_font = ImageFont.truetype(self.font_path, artist_size)
         title_font = ImageFont.truetype(self.font_path, title_size)
 
-        # Draw the text stack
         y_offset = SAFE_Y
-        draw.text((SAFE_X, y_offset), artist, font=artist_font, fill=(255, 255, 255, 255), stroke_width=3, stroke_fill=(0,0,0,255))
-        y_offset += int(artist_size * 1.2)
-        
-        draw.text((SAFE_X, y_offset), title, font=title_font, fill=(210, 210, 210, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+        draw.text((SAFE_X, y_offset), title, font=title_font, fill=(255, 255, 255, 255), stroke_width=3, stroke_fill=(0,0,0,255))
         y_offset += int(title_size * 1.2)
         
+        draw.text((SAFE_X, y_offset), artist, font=artist_font, fill=(210, 210, 210, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+        y_offset += int(artist_size * 1.2)
+        
         if album:
-            draw.text((SAFE_X, y_offset), album + year, font=title_font, fill=(180, 180, 180, 255), stroke_width=3, stroke_fill=(0,0,0,255))
-        elif not album:
-            draw.text((SAFE_X, y_offset), year, font=title_font, fill=(180, 180, 180, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+            draw.text((SAFE_X, y_offset), album + (f", {year}" if year else ""), font=artist_font, fill=(180, 180, 180, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+        elif not album and year:
+            draw.text((SAFE_X, y_offset), year, font=artist_font, fill=(180, 180, 180, 255), stroke_width=3, stroke_fill=(0,0,0,255))
 
         img.save(output_path, "PNG")
         return output_path

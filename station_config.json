@@ -133,29 +133,18 @@
             "settings": {
                 "enable_movies": false,
                 "movie_frequency": 20,
-                "commercial_frequency": 1,
+                "commercial_frequency": 4,
                 "commercial_min_sec": 123,
                 "commercial_max_sec": 378
             },
             "schedule_block": [
                 {
-                    "type": "music_video",
-                    "count": 1,
-                    "mode": "random",
-                    "sync_global": false
-                },
-                {
-                    "type": "movie",
-                    "count": 1,
-                    "mode": "random",
-                    "sync_global": false
-                },
-                {
                     "type": "rotate",
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
-                    "group": "Star_Trek"
+                    "group": "Star_Trek",
+                    "resolved_show": "Star Trek Deep Space Nine"
                 },
                 {
                     "type": "anchor",
@@ -176,14 +165,16 @@
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
-                    "group": "90s_Kids"
+                    "group": "90s_Kids",
+                    "resolved_show": "Pete & Pete"
                 },
                 {
                     "type": "rotate",
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
-                    "group": "Comedy"
+                    "group": "Comedy",
+                    "resolved_show": "The Kids in the Hall"
                 },
                 {
                     "type": "anchor",
@@ -201,7 +192,16 @@
                 }
             ],
             "bookmarks": {
-                "Star Trek The Next Generation": 1
+                "Star Trek The Next Generation": 14,
+                "Star Trek Deep Space Nine": 14,
+                "The Simpsons": 14,
+                "Batman - The Animated Series": 14,
+                "Rocko's Modern Life": 8,
+                "The Kids in the Hall": 1,
+                "The X-Files": 2,
+                "Twin Peaks": 2,
+                "Pete & Pete": 5,
+                "South Park": 1
             }
         },
         "Test": {

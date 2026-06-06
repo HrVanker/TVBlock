@@ -36,6 +36,8 @@ class ScheduleEngine:
         self.block_index = 0
         self.items_since_break = 0
 
+        self._resolve_all_rotations()
+
     def _load_json(self, filepath):
         if os.path.exists(filepath):
             try:
@@ -98,6 +100,16 @@ class ScheduleEngine:
         # Filter out blacklisted episodes
         blacklist = self.config.get("blacklist", [])
         return [ep for ep in flat_eps if ep not in blacklist]
+
+    def _resolve_all_rotations(self):
+        """Rolls the dice for all rotation groups and saves the choice in memory."""
+        for channel in self.config.get("channels", {}).values():
+            for slot in channel.get("schedule_block", []):
+                if slot.get("type") == "rotate":
+                    group_name = slot.get("group")
+                    group_shows = self.rotation_groups.get(group_name, [])
+                    if group_shows:
+                        slot["resolved_show"] = random.choice(group_shows)
 
     def _get_episode(self, show_name, slot_data):
         """The core brain of the Network: handles history, overrides, and modes."""
@@ -235,11 +247,21 @@ class ScheduleEngine:
                 ep_path = self._get_episode(show_name, slot)
                 
             elif s_type == "rotate":
+                # --- FIX: Grab the pre-resolved show ---
                 group_name = slot.get("group")
+                show_name = slot.get("resolved_show")
+                
+                # Fallback if config was manually edited while running
+                if not show_name:
+                    group_shows = self.rotation_groups.get(group_name, [])
+                    show_name = random.choice(group_shows) if group_shows else "Unknown"
+
+                ep_path = self._get_episode(show_name, slot)
+                
+                # --- FIX: Re-roll the slot for the next time we loop around! ---
                 group_shows = self.rotation_groups.get(group_name, [])
                 if group_shows:
-                    show_name = random.choice(group_shows)
-                    ep_path = self._get_episode(show_name, slot)
+                    slot["resolved_show"] = random.choice(group_shows)
 
             elif s_type == "movie":
                 show_name = "Feature Presentation"
@@ -263,11 +285,9 @@ class ScheduleEngine:
         return {"type": "video", "show": "System", "display": "No Valid Media Found in Block", "path": None}
 
     def get_upcoming_list(self, limit=10):
-        """Simulates the engine forward to build the UI queue list."""
         upcoming = []
         sim_block_idx = self.block_index
         sim_items_since = self.items_since_break
-        
         channel_data = self._get_channel_data()
         schedule_block = channel_data.get("schedule_block", [])
         settings = channel_data.get("settings", {})
@@ -277,21 +297,20 @@ class ScheduleEngine:
 
         for _ in range(limit):
             if sim_items_since >= comm_freq:
-                upcoming.append({
-                    "type": "break", 
-                    "min": settings.get("commercial_min_sec", 60), 
-                    "max": settings.get("commercial_max_sec", 120)
-                })
+                upcoming.append({"type": "break", "min": settings.get("commercial_min_sec", 60), "max": settings.get("commercial_max_sec", 120)})
                 sim_items_since = 0
                 continue
                 
-            if sim_block_idx >= len(schedule_block):
-                sim_block_idx = 0
-                
+            if sim_block_idx >= len(schedule_block): sim_block_idx = 0
             slot = schedule_block[sim_block_idx]
             sim_block_idx += 1
             
-            name = slot.get("show", slot.get("group", "Movie"))
+            # --- FIX: Display the resolved show instead of the group container! ---
+            if slot.get("type") == "rotate":
+                name = slot.get("resolved_show", slot.get("group"))
+            else:
+                name = slot.get("show", slot.get("group", "Movie"))
+                
             upcoming.append({"type": "video", "show": name, "display": f"[{slot.get('mode', 'sequential').upper()}]"})
             sim_items_since += 1
 

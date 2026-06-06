@@ -203,8 +203,8 @@ class TVStationService:
         selected_bug = random.choice(bugs)
         bug_path = os.path.join(bug_dir, selected_bug)
         bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
-        bug_height = 100
-        return f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,scale=-1:{bug_height},setsar=1[logo];[in][logo]overlay=W-w-50:H-h-50]"
+        bug_height = 50
+        return f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,scale=-1:{bug_height},setsar=1[logo];[in][logo]overlay=W-w-10:H-h-10]"
 
     def _broadcast_loop(self):
         player = None
@@ -293,7 +293,7 @@ class TVStationService:
 
                     temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
                     bumper_data = self.gfx_engine.generate_transparent_bumper(
-                        upcoming_shows, comm_duration, output_path=temp_overlay, target_width=bg_width, target_height=bg_height
+                        upcoming_shows, comm_duration, output_path=temp_overlay, target_width=1920, target_height=1080
                     )
 
                     def apply_osd(img_path):
@@ -353,9 +353,18 @@ class TVStationService:
                     # Prepare MTV Graphic if applicable
                     mtv_bug_path = os.path.join(app_dir, "assets", "mtv_bug.png")
                     if mv_metadata:
-                        v_width = player.dwidth if player.dwidth else 1920
-                        v_height = player.dheight if player.dheight else 1080
-                        self.gfx_engine.generate_mtv_bug(mv_metadata, output_path=mtv_bug_path, target_width=v_width, target_height=v_height)
+                        # --- FIX: Standardize to 1080p Broadcast Resolution ---
+                        # Instead of asking the video for its native size (which warps old 480p videos),
+                        # we force the overlay to generate at your monitor's native fullscreen size.
+                        v_width = 1920
+                        v_height = 1080
+                        
+                        self.gfx_engine.generate_mtv_bug(
+                            mv_metadata, 
+                            output_path=mtv_bug_path, 
+                            target_width=v_width, 
+                            target_height=v_height
+                        )
 
                     def apply_mtv_osd():
                         try:
