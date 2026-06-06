@@ -2,14 +2,8 @@
     "paths": {
         "tv": "D:\\Media\\Shows",
         "movies": "D:\\Media\\Movies",
-        "commercials": "D:\\Media\\Commercials"
-    },
-    "settings": {
-        "enable_movies": false,
-        "movie_frequency": 20,
-        "commercial_frequency": 1,
-        "commercial_min_sec": 123,
-        "commercial_max_sec": 378
+        "commercials": "D:\\Media\\Commercials",
+        "music_videos": "D:\\Media\\Music Videos"
     },
     "rotation_groups": {
         "90s_Kids": [
@@ -26,47 +20,6 @@
             "The Kids in the Hall"
         ]
     },
-    "schedule_block": [
-        {
-            "type": "rotate",
-            "count": 1,
-            "random": true,
-            "group": "Star_Trek"
-        },
-        {
-            "type": "anchor",
-            "count": 2,
-            "random": true,
-            "show": "The Simpsons"
-        },
-        {
-            "type": "anchor",
-            "count": 1,
-            "show": "Batman - The Animated Series"
-        },
-        {
-            "type": "rotate",
-            "count": 1,
-            "random": true,
-            "group": "90s_Kids"
-        },
-        {
-            "type": "rotate",
-            "count": 1,
-            "random": true,
-            "group": "Comedy"
-        },
-        {
-            "type": "anchor",
-            "count": 1,
-            "show": "The X-Files"
-        },
-        {
-            "type": "anchor",
-            "count": 1,
-            "show": "Twin Peaks"
-        }
-    ],
     "blacklist": [
         "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S1\\Star Trek Deep Space Nine - 1x01 & 1x02 - Emissary.mkv",
         "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S1\\Star Trek Deep Space Nine - 1x03 - Past Prologue.mkv",
@@ -174,5 +127,92 @@
         "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x20 - The War of the Simpsons.avi",
         "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x21 - Three Men and a Comic Book.avi",
         "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x22 - Blood Feud.avi"
-    ]
+    ],
+    "channels": {
+        "Default Channel": {
+            "settings": {
+                "enable_movies": false,
+                "movie_frequency": 20,
+                "commercial_frequency": 1,
+                "commercial_min_sec": 123,
+                "commercial_max_sec": 378
+            },
+            "schedule_block": [
+                {
+                    "type": "music_video",
+                    "count": 1,
+                    "mode": "random",
+                    "sync_global": false,
+                    "path": "D:\\Media\\Music Videos\\They Might Be Giants - \uff02Doctor Worm\uff02 - KaBlam! [HD] [zTMvMkt-1ls].mp4"
+                },
+                {
+                    "type": "rotate",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "group": "Star_Trek"
+                },
+                {
+                    "type": "music_video",
+                    "count": 1,
+                    "mode": "random",
+                    "sync_global": false,
+                    "path": "D:\\Media\\Music Videos\\Phish - 7\u29f827\u29f82022 - All Of These Dreams.mp4"
+                },
+                {
+                    "type": "anchor",
+                    "count": 2,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "The Simpsons"
+                },
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "Batman - The Animated Series"
+                },
+                {
+                    "type": "rotate",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "group": "90s_Kids"
+                },
+                {
+                    "type": "rotate",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "group": "Comedy"
+                },
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "The X-Files"
+                },
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "Twin Peaks"
+                }
+            ],
+            "bookmarks": {}
+        },
+        "Test": {
+            "settings": {
+                "commercial_frequency": 3,
+                "commercial_min_sec": 60,
+                "commercial_max_sec": 120
+            },
+            "schedule_block": [],
+            "bookmarks": {}
+        }
+    },
+    "active_channel": "Default Channel"
 }

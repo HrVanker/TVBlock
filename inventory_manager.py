@@ -107,3 +107,20 @@ class InventoryManager:
         
         print(f"Found {len(movies)} movies.")
         return movies
+
+    def scan_music_videos(self, path):
+        """Scans a directory for music video files."""
+        print(f"DEBUG: Scanning Music Videos in {path}")
+        music_videos = []
+        valid_exts = ('.mp4', '.mkv', '.avi', '.mov', '.m4v')
+        
+        if not os.path.exists(path):
+            return music_videos
+            
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if file.lower().endswith(valid_exts):
+                    music_videos.append(os.path.join(root, file))
+                    
+        print(f"DEBUG: Found {len(music_videos)} Music Videos")
+        return music_videos
