@@ -1553,6 +1553,13 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-06-05 17:59:02.839553"
+        },
+        "Slint - Good Morning, Captain (Demo).mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\Slint - Good Morning, Captain (Demo).mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 18:46:22.165164"
         }
     }
 }

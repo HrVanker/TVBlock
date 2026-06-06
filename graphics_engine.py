@@ -135,7 +135,7 @@ class GraphicsEngine:
         artist = metadata.get("artist") or "Unknown Artist"
         title = metadata.get("title") or "Unknown Title"
         album = metadata.get("album")
-        year = metadata.get("year") or "fuck"
+        year = metadata.get("year") or "test"
 
         # Font Scaling
         artist_size = int(target_height * 0.045)
