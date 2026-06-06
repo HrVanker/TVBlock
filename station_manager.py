@@ -481,7 +481,7 @@ class TVStationService:
         history["playback_log"][filename] = entry
         
         with open(HISTORY_FILE, 'w') as f: json.dump(history, f, indent=4)
-        self.scheduler.history = self.scheduler._load_history()
+        self.scheduler.history = self.scheduler._load_json(HISTORY_FILE)
 
 
 class StationManagerApp:

@@ -142,8 +142,13 @@
                     "type": "music_video",
                     "count": 1,
                     "mode": "random",
-                    "sync_global": false,
-                    "path": "D:\\Media\\Music Videos\\Slint - Good Morning, Captain (Demo).mp4"
+                    "sync_global": false
+                },
+                {
+                    "type": "movie",
+                    "count": 1,
+                    "mode": "random",
+                    "sync_global": false
                 },
                 {
                     "type": "rotate",

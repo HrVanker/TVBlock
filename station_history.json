@@ -1006,7 +1006,7 @@
             "path": "D:\\Media\\Shows\\Star Trek Deep Space Nine\\S2\\Star Trek Deep Space Nine - 2x06 - Melora.mkv",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 18:03:45.303495"
+            "last_played": "2026-06-05 18:54:52.083750"
         },
         "The Simpsons - 3x24 - Brother, Can You Spare Two Dimes.avi": {
             "show": "The Simpsons",
@@ -1559,7 +1559,14 @@
             "path": "D:\\Media\\Music Videos\\Slint - Good Morning, Captain (Demo).mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-05 18:46:22.165164"
+            "last_played": "2026-06-05 18:54:40.037276"
+        },
+        "James Henry Jr. - Take Me Down Easy.mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\James Henry Jr. - Take Me Down Easy.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-06-05 18:55:24.978575"
         }
     }
 }
