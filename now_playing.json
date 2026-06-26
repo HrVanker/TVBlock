@@ -1,0 +1,50 @@
+{
+    "now_playing": {
+        "show": "---",
+        "title": "Offline",
+        "percent": 0
+    },
+    "upcoming": [
+        {
+            "show": "Star Trek Voyager",
+            "title": "[SEQUENTIAL]"
+        },
+        {
+            "show": "The Simpsons",
+            "title": "[RANDOM_NO_RERUNS]"
+        },
+        {
+            "show": "The X-Files",
+            "title": "[SEQUENTIAL]"
+        },
+        {
+            "show": "COMMERCIALS",
+            "title": "120s - 240s Block"
+        },
+        {
+            "show": "Moonlighting",
+            "title": "[SEQUENTIAL]"
+        },
+        {
+            "show": "Music Video",
+            "title": "[RANDOM]"
+        },
+        {
+            "show": "Pete & Pete",
+            "title": "[SEQUENTIAL]"
+        },
+        {
+            "show": "COMMERCIALS",
+            "title": "120s - 240s Block"
+        },
+        {
+            "show": "Batman - The Animated Series",
+            "title": "[SEQUENTIAL]"
+        },
+        {
+            "show": "Farscape",
+            "title": "[SEQUENTIAL]"
+        }
+    ],
+    "last_update": 1782508024.1670945
+}

@@ -27,9 +27,7 @@
     <Compile Include="rotation_editor.py" />
     <Compile Include="schedule_engine.py" />
     <Compile Include="station_manager.py" />
-    <Compile Include="TVBlock.py" />
     <Compile Include="tv_player.py" />
-    <Compile Include="vlc.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="assets\output.gif" />

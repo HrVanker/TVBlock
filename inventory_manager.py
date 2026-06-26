@@ -1,5 +1,7 @@
 import os
 import re
+import json
+import time
 from pathlib import Path
 
 class InventoryManager:
@@ -11,6 +13,11 @@ class InventoryManager:
         
         # Extensions we consider valid media files
         self.valid_extensions = {'.mkv', '.mp4', '.avi', '.mov', '.m4v'}
+        
+        # Library storage for caching
+        self.tv_library = {}
+        self.movie_library = []
+        self.music_video_library = []
 
     def scan_series(self, library_path):
         """
@@ -37,6 +44,7 @@ class InventoryManager:
                     library[series_name] = series_data
                     print(f"Found Series: {series_name} ({len(series_data)} seasons)")
 
+        self.tv_library = library
         return library
 
     def _process_seasons(self, series_path):
@@ -106,6 +114,7 @@ class InventoryManager:
                         break # Found one file, assume it's the movie and move on
         
         print(f"Found {len(movies)} movies.")
+        self.movie_library = movies
         return movies
 
     def scan_music_videos(self, path):
@@ -115,6 +124,7 @@ class InventoryManager:
         valid_exts = ('.mp4', '.mkv', '.avi', '.mov', '.m4v')
         
         if not os.path.exists(path):
+            self.music_video_library = music_videos
             return music_videos
             
         for root, dirs, files in os.walk(path):
@@ -123,4 +133,21 @@ class InventoryManager:
                     music_videos.append(os.path.join(root, file))
                     
         print(f"DEBUG: Found {len(music_videos)} Music Videos")
+        self.music_video_library = music_videos
         return music_videos
+
+    def export_cache(self, output_path="inventory_cache.json"):
+        """Exports the current library state to a JSON file for external use (e.g. Discord Bot)."""
+        cache_data = {
+            "tv": self.tv_library,
+            "movies": self.movie_library,
+            "music_videos": self.music_video_library,
+            "last_updated": str(time.time())
+        }
+        
+        try:
+            with open(output_path, 'w') as f:
+                json.dump(cache_data, f, indent=4)
+            print(f"DEBUG: Inventory cache exported to {output_path}")
+        except Exception as e:
+            print(f"ERROR: Failed to export inventory cache: {e}")

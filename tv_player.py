@@ -109,6 +109,8 @@ def main(parent_gui=None):
         keep_open=True, 
         input_default_bindings=True, 
         input_vo_keyboard=True,
+        deinterlace="auto",
+        af='lavfi=[dynaudnorm=f=75:g=31:n=0:p=0.58]',
         # REMOVED the 'if level in' restriction so we see EVERYTHING
         log_handler=lambda level, prefix, text: print(f"MPV [{level}] {prefix}: {text}")
     )
@@ -148,17 +150,29 @@ def main(parent_gui=None):
                 # Give mpv a tiny fraction of a second to initialize the video track
                 time.sleep(0.5) 
 
-                # --- TURN ON THE BUG ---
+                # --- TURN ON THE BUG (Using Overlay Layer 3) ---
                 if os.path.exists(bug_path):
                     try:
-                        # Use direct core command: Add filter with the label '@stationbug'
-                        player.command("vf", "add", f"@stationbug:{bug_filter_string}")
+                        def apply_station_bug(img_path):
+                            img = Image.open(img_path).convert("RGBA")
+                            r, g, b, a = img.split()
+                            img_bgra = Image.merge("RGBA", (b, g, r, a))
+                            bgra_path = os.path.join(BASE_DIR, "assets", "bug.bgra")
+                            with open(bgra_path, "wb") as f: f.write(img_bgra.tobytes())
+                            w, h = img.size
+                            player.command("overlay-add", 3, 0, 0, bgra_path.replace("\\", "/"), 0, "bgra", w, h, w * 4)
+                        
+                        apply_station_bug(bug_path)
                     except Exception as e:
-                        print(f"DEBUG: Failed to add bug filter: {e}")
+                        print(f"DEBUG: Failed to add bug overlay: {e}")
                 else:
                     print(f"DEBUG: Bug asset not found at {bug_path}, playing without bug.")
 
                 player.wait_for_playback()
+                
+                # Cleanup bug
+                try: player.command("overlay-remove", 3)
+                except: pass
 
                 # Save history
                 update_history(current_video_state["show"], current_video_state["path"], "watched", 100)
@@ -169,10 +183,9 @@ def main(parent_gui=None):
                 
                 # --- TURN OFF THE BUG ---
                 try:
-                    # Remove the filter by its label
-                    player.command("vf", "remove", "@stationbug")
+                    player.command("overlay-remove", 3)
                 except Exception:
-                    pass # It's okay if it fails (e.g., if it was never added)
+                    pass 
 
                 clips = comm_manager.generate_break(content['min'], content['max'])
                 

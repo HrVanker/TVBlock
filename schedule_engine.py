@@ -1,6 +1,6 @@
 import os
-import random
 import json
+import random
 from tinytag import TinyTag
 
 class ScheduleEngine:
@@ -10,41 +10,27 @@ class ScheduleEngine:
         self.music_video_library = music_video_library
         self.config_file = config_file
         
-        self.config = self._load_json(config_file)
         self.history = self._load_json("station_history.json")
-        
-        # 1. Automatic Network Migration
+        self.config = self._load_json(config_file)
+
+        # Migrate legacy single-channel configs to multi-channel
         if "channels" not in self.config:
-            self._migrate_old_config()
+            self._migrate_config()
 
-        # 2. Set Active Channel
-        if active_channel:
-            self.active_channel = active_channel
-            self.config["active_channel"] = active_channel
-            self._save_config()
-        else:
-            self.active_channel = self.config.get("active_channel", "Default Channel")
-
-        # Ensure channel has a bookmarks dict
-        if "bookmarks" not in self._get_channel_data():
-            self.config["channels"][self.active_channel]["bookmarks"] = {}
-            self._save_config()
-
-        self.rotation_groups = self.config.get("rotation_groups", {})
+        self.active_channel = active_channel if active_channel else self.config.get("active_channel", "Default Channel")
         
-        # Tracking variables
+        # Internal Bookkeeping
         self.block_index = 0
         self.slot_play_count = 0
         self.items_since_break = 0
+        
+        self._init_rotations()
 
-        self._resolve_all_rotations()
-
-    def _load_json(self, filepath):
-        if os.path.exists(filepath):
-            try:
-                with open(filepath, 'r') as f:
-                    return json.load(f)
-            except: pass
+    def _load_json(self, path):
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                try: return json.load(f)
+                except: return {}
         return {}
 
     def _save_config(self):
@@ -54,9 +40,34 @@ class ScheduleEngine:
         except Exception as e:
             print(f"DEBUG: Could not save config: {e}")
 
-    def _migrate_old_config(self):
-        """Upgrades older config formats to the new Multi-Channel Network architecture."""
-        print("DEBUG: Migrating station_config.json to Multi-Channel Architecture...")
+    def _init_rotations(self):
+        """Pre-rolls the current show for all rotation groups and movies in the block."""
+        self.rotation_groups = self.config.get("rotation_groups", {})
+        channel_data = self._get_channel_data()
+        schedule_block = channel_data.get("schedule_block", [])
+        for slot in schedule_block:
+            # Resolve Rotation Groups
+            if slot.get("type") == "rotate" and not slot.get("resolved_show"):
+                group_name = slot.get("group")
+                group_shows = self.rotation_groups.get(group_name, [])
+                if group_shows:
+                    slot["resolved_show"] = random.choice(group_shows)
+            
+            # Resolve Random Movies
+            if slot.get("type") == "movie" and not slot.get("path") and not slot.get("resolved_path"):
+                if self.movie_library:
+                    movie_path = random.choice(self.movie_library)
+                    slot["resolved_path"] = movie_path
+                    
+                    # Try to get the title from metadata, fallback to filename without extension
+                    try:
+                        tag = TinyTag.get(movie_path)
+                        slot["resolved_show"] = tag.title if tag.title else os.path.splitext(os.path.basename(movie_path))[0]
+                    except:
+                        slot["resolved_show"] = os.path.splitext(os.path.basename(movie_path))[0]
+
+    def _migrate_config(self):
+        """Upgrades an old station_config.json to the new multi-channel format."""
         old_block = self.config.get("schedule_block", [])
         old_settings = self.config.get("settings", {
             "commercial_frequency": 3,
@@ -112,7 +123,7 @@ class ScheduleEngine:
                     if group_shows:
                         slot["resolved_show"] = random.choice(group_shows)
 
-    def _get_episode(self, show_name, slot_data):
+    def _get_episode(self, show_name, slot_data, peek=False):
         """The core brain of the Network: handles history, overrides, and modes."""
         flat_eps = self._flatten_series(show_name)
         if not flat_eps:
@@ -124,14 +135,17 @@ class ScheduleEngine:
         if "override_start" in slot_data and slot_data["override_start"]:
             ep_path = slot_data["override_start"]
             
-            # Remove the override so it only happens once
-            del slot_data["override_start"]
+            if not peek:
+                # Remove the override so it only happens once
+                del slot_data["override_start"]
             
             # Sync the local bookmark so sequential play continues smoothly from here next time
             if ep_path in flat_eps:
-                self._set_local_bookmark(show_name, flat_eps.index(ep_path) + 1)
+                if not peek:
+                    self._set_local_bookmark(show_name, flat_eps.index(ep_path) + 1)
             else:
-                self._save_config() # Save the removal even if file wasn't found
+                if not peek:
+                    self._save_config() # Save the removal even if file wasn't found
                 
             if ep_path in flat_eps:
                 return ep_path
@@ -156,8 +170,9 @@ class ScheduleEngine:
                     
                 ep_path = flat_eps[next_idx]
                 
-                # Update local bookmark passively just in case user turns sync off later
-                self._set_local_bookmark(show_name, next_idx + 1)
+                if not peek:
+                    # Update local bookmark passively just in case user turns sync off later
+                    self._set_local_bookmark(show_name, next_idx + 1)
                 return ep_path
                 
             else:
@@ -167,7 +182,8 @@ class ScheduleEngine:
                     idx = 0 # Loop back to pilot
                     
                 ep_path = flat_eps[idx]
-                self._set_local_bookmark(show_name, idx + 1)
+                if not peek:
+                    self._set_local_bookmark(show_name, idx + 1)
                 return ep_path
 
         # 3. RANDOM NO-RERUNS MODE
@@ -218,9 +234,9 @@ class ScheduleEngine:
         settings = channel_data.get("settings", {})
         
         if not schedule_block:
-            return {"type": "video", "show": "System", "display": "No Schedule Block Configured", "path": None}
+            return {"type": "video", "show": "System", "display": "No Schedule Defined", "path": None}
 
-        # 1. Check if it's time for a commercial break
+        # 1. Handle Commercial Break injection
         comm_freq = settings.get("commercial_frequency", 3)
         if self.items_since_break >= comm_freq:
             self.items_since_break = 0
@@ -230,13 +246,13 @@ class ScheduleEngine:
                 "max": settings.get("commercial_max_sec", 120)
             }
 
-        # 2. Find the next valid video slot
+        # 2. Handle Schedule Block Progression
         loop_guard = 0
         while loop_guard < len(schedule_block):
-            if self.block_index >= len(schedule_block): 
+            if self.block_index >= len(schedule_block):
                 self.block_index = 0
                 self.slot_play_count = 0
-                
+            
             slot = schedule_block[self.block_index]
             target_count = slot.get("count", 1)
             
@@ -266,8 +282,24 @@ class ScheduleEngine:
                     slot["resolved_show"] = random.choice(group_shows)
 
             elif s_type == "movie":
-                show_name = "Feature Presentation"
-                ep_path = self._get_movie(slot)
+                # --- FIX: Grab the pre-resolved movie path/title ---
+                ep_path = slot.get("resolved_path")
+                show_name = slot.get("resolved_show", "Feature Presentation")
+                
+                # Fallback if not pre-resolved (legacy or manual config edit)
+                if not ep_path:
+                    ep_path = self._get_movie(slot)
+                    show_name = os.path.basename(ep_path) if ep_path else "Feature Presentation"
+
+                # --- FIX: Re-roll the movie for the next time we loop around! ---
+                if self.movie_library:
+                    new_movie = random.choice(self.movie_library)
+                    slot["resolved_path"] = new_movie
+                    try:
+                        tag = TinyTag.get(new_movie)
+                        slot["resolved_show"] = tag.title if tag.title else os.path.splitext(os.path.basename(new_movie))[0]
+                    except:
+                        slot["resolved_show"] = os.path.splitext(os.path.basename(new_movie))[0]
 
             elif s_type == "music_video":
                 show_name = "Music Video"
@@ -299,23 +331,27 @@ class ScheduleEngine:
         return {"type": "video", "show": "System", "display": "No Valid Media Found in Block", "path": None}
 
     def get_upcoming_list(self, limit=10):
-        upcoming = []
+        """Returns a list of the next N items to be played for UI purposes."""
+        channel_data = self._get_channel_data()
+        schedule_block = channel_data.get("schedule_block", [])
+        settings = channel_data.get("settings", {})
         
-        # Temporary variables to simulate the future without permanently changing the real bookmarks
+        if not schedule_block: return []
+        
+        upcoming = []
         sim_block_idx = self.block_index
         sim_slot_count = self.slot_play_count
         sim_items_since = self.items_since_break
         
-        channel_data = self._get_channel_data()
-        schedule_block = channel_data.get("schedule_block", [])
-        settings = channel_data.get("settings", {})
-        comm_freq = settings.get("commercial_frequency", 3)
-
-        if not schedule_block: return upcoming
-
+        # We simulate the next few steps
         for _ in range(limit):
+            comm_freq = settings.get("commercial_frequency", 3)
             if sim_items_since >= comm_freq:
-                upcoming.append({"type": "break", "min": settings.get("commercial_min_sec", 60), "max": settings.get("commercial_max_sec", 120)})
+                upcoming.append({
+                    "type": "break", 
+                    "min": settings.get("commercial_min_sec", 60), 
+                    "max": settings.get("commercial_max_sec", 120)
+                })
                 sim_items_since = 0
                 continue
                 
@@ -326,16 +362,20 @@ class ScheduleEngine:
             slot = schedule_block[sim_block_idx]
             target_count = slot.get("count", 1)
             
-            if slot.get("type") == "rotate":
-                name = slot.get("resolved_show", slot.get("group"))
-            elif slot.get("type") == "movie":
-                name = "Feature Presentation" if not slot.get("path") else os.path.basename(slot.get("path"))
-            elif slot.get("type") == "music_video":
-                name = "Music Video" if not slot.get("path") else os.path.basename(slot.get("path"))
-            else:
-                name = slot.get("show", "Unknown")
-                
-            upcoming.append({"type": "video", "show": name, "display": f"[{slot.get('mode', 'sequential').upper()}]"})
+            s_type = slot.get("type")
+            ep_path = None
+            show_name = "Unknown"
+
+            if s_type == "anchor":
+                show_name = slot.get("show", "Unknown")
+            elif s_type == "rotate":
+                show_name = slot.get("resolved_show", slot.get("group", "Unknown"))
+            elif s_type == "movie":
+                show_name = slot.get("resolved_show", "Feature Presentation")
+            elif s_type == "music_video":
+                show_name = "Music Video"
+
+            upcoming.append({"type": "video", "show": show_name, "display": f"[{slot.get('mode', 'sequential').upper()}]"})
             
             # --- FIX: SIMULATE THE COUNT BOOKKEEPING ---
             sim_slot_count += 1
@@ -348,17 +388,118 @@ class ScheduleEngine:
         return upcoming
 
     def get_upcoming_durations(self, limit=3):
-        """Used by the Graphic Engine to build the Bumper Times."""
-        upcoming = []
-        # We grab limit items from the upcoming list, IGNORING breaks because
-        # we know they play continuously after the current break finishes.
-        future_items = [i for i in self.get_upcoming_list(limit=limit+1) if i['type'] != 'break'][:limit]
+        """Returns actual durations (in seconds) for the next N media items."""
+        channel_data = self._get_channel_data()
+        schedule_block = channel_data.get("schedule_block", [])
+        settings = channel_data.get("settings", {})
         
-        for item in future_items:
-            # We don't simulate fetching the exact file here to save CPU/Bookmarks, 
-            # so we just return the show name and default 22m duration.
-            # (Movies can default to 90m for UI purposes)
-            dur = 5400 if item.get("show") == "Feature Presentation" else 1320
-            upcoming.append((item.get("show", "Unknown"), dur))
+        if not schedule_block: return []
+        
+        upcoming_data = []
+        sim_block_idx = self.block_index
+        sim_slot_count = self.slot_play_count
+        sim_items_since = self.items_since_break
+        
+        # To avoid side effects on rotation groups, we'd need to be careful.
+        # But we only need durations, so we simulate.
+        
+        while len(upcoming_data) < limit:
+            comm_freq = settings.get("commercial_frequency", 3)
+            if sim_items_since >= comm_freq:
+                # We hit a future break! Estimate its length using the average of min/max settings.
+                c_min = settings.get("commercial_min_sec", 60)
+                c_max = settings.get("commercial_max_sec", 120)
+                avg_break = (c_min + c_max) // 2
+                
+                # Add this break time to the LAST show we added to the list, 
+                # so the NEXT show starts at the correct time.
+                if upcoming_data:
+                    last_show, last_dur = upcoming_data[-1]
+                    upcoming_data[-1] = (last_show, last_dur + avg_break)
+                
+                sim_items_since = 0
+                continue 
+                
+            if sim_block_idx >= len(schedule_block): 
+                sim_block_idx = 0
+                sim_slot_count = 0
+                
+            slot = schedule_block[sim_block_idx]
+            target_count = slot.get("count", 1)
             
-        return upcoming
+            s_type = slot.get("type")
+            ep_path = None
+            show_name = "Unknown"
+
+            if s_type == "anchor":
+                show_name = slot.get("show")
+                ep_path = self._get_episode(show_name, slot, peek=True)
+            elif s_type == "rotate":
+                show_name = slot.get("resolved_show")
+                if not show_name:
+                    group_name = slot.get("group")
+                    group_shows = self.rotation_groups.get(group_name, [])
+                    show_name = random.choice(group_shows) if group_shows else "Unknown"
+                ep_path = self._get_episode(show_name, slot, peek=True)
+            elif s_type == "movie":
+                # --- FIX: Use pre-resolved path for accurate duration calculation ---
+                ep_path = slot.get("resolved_path")
+                show_name = slot.get("resolved_show", "Feature Presentation")
+                
+                # Fallback if not pre-resolved
+                if not ep_path:
+                    ep_path = self._get_movie(slot)
+                    show_name = os.path.basename(ep_path) if ep_path else "Feature Presentation"
+            elif s_type == "music_video":
+                show_name = "Music Video"
+                ep_path = self._get_music_video(slot)
+
+            if ep_path and os.path.exists(ep_path):
+                try:
+                    tag = TinyTag.get(ep_path)
+                    duration = int(tag.duration) if tag.duration else 1320
+                except:
+                    duration = 1320 # Default 22m
+                upcoming_data.append((show_name, duration, s_type))
+            else:
+                # Fallback if path doesn't exist or is None
+                dur = 5400 if s_type == "movie" else 1320
+                upcoming_data.append((show_name, dur, s_type))
+            
+            sim_slot_count += 1
+            if sim_slot_count >= target_count:
+                sim_slot_count = 0
+                sim_block_idx += 1
+            sim_items_since += 1
+
+        return upcoming_data
+
+    def _load_history(self):
+        return self._load_json("station_history.json")
+
+    def inject_slot(self, slot_data, insert_next=True):
+        """Injects a new slot into the current rotation. Protects original channels by cloning."""
+        if not self.active_channel.startswith("Live DJ: "):
+            new_channel_name = f"Live DJ: {self.active_channel}"
+            # Duplicate the current channel settings
+            current_data = self.config["channels"].get(self.active_channel, {})
+            # Make a deep copy to avoid reference issues
+            import copy
+            self.config["channels"][new_channel_name] = copy.deepcopy(current_data)
+            self.active_channel = new_channel_name
+            self.config["active_channel"] = new_channel_name
+
+        channel_data = self.config["channels"].get(self.active_channel)
+        if "schedule_block" not in channel_data:
+            channel_data["schedule_block"] = []
+            
+        schedule = channel_data["schedule_block"]
+        
+        if insert_next:
+            schedule.insert(self.block_index, slot_data)
+            # Reset play count so the injected item starts fresh
+            self.slot_play_count = 0
+        else:
+            schedule.append(slot_data)
+            
+        self._save_config()

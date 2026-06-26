@@ -5,8 +5,9 @@ import datetime
 import time
 
 class GraphicsEngine:
-    def __init__(self, font_path="assets/MonoPolz.ttf", resolution=(1920, 1080)):
+    def __init__(self, font_path="assets/MonoPolz.ttf", resolution=(1920, 1080), music_font="assets/vcr_mono.ttf"):
         self.font_path = font_path
+        self.music_font = music_font
         self.width, self.height = resolution
 
     def generate_transparent_bumper(self, upcoming_shows, commercial_duration_sec, output_path="temp_overlay.png", target_width=1920, target_height=1080):
@@ -47,18 +48,54 @@ class GraphicsEngine:
         y_offset += (line_height * 1.1)
 
         # 6. Draw Shows
-        for show_name, duration in upcoming_shows[:4]:
-            time_str = start_time.strftime("%I:%M %p").lstrip("0") + f" {tz_code}"
-            max_chars = 40
-            display_name = (show_name[:max_chars] + '...') if len(show_name) > max_chars else show_name
-            time_width = int(draw.textlength(time_str, font=time_font))
-            gap_padding = int(target_width * 0.02) 
+        drawn_count = 0
+        for item_data in upcoming_shows:
+            if drawn_count >= len(upcoming_shows): break
+            
+            # Unpack data (handle both old 2-tuple and new 3-tuple formats for safety)
+            show_name = item_data[0]
+            duration = item_data[1]
+            s_type = item_data[2] if len(item_data) > 2 else "video"
+
+            # SKIP MUSIC VIDEOS: Don't draw them, but add their time to start_time
+            if s_type == "music_video":
+                start_time += datetime.timedelta(seconds=duration)
+                continue
+
+            time_str = start_time.strftime("%I:%M %p").lstrip("0")
+            if len(time_str.split(':')[0]) == 1:
+                time_str = " " + time_str
+            time_str += f" {tz_code}"
+
+            time_width = int(draw.textlength(time_str + " | ", font=time_font))
+            gap_padding = int(target_width * 0.02)
+            title_x = SAFE_X * 1.75 + time_width + gap_padding
 
             draw.text((SAFE_X*1.75, y_offset), time_str + " | ", font=time_font, fill=(255, 210, 50, 255),stroke_width=4, stroke_fill=(0,0,0,255))
-            draw.text((SAFE_X*1.75 + time_width + gap_padding, y_offset), "    " + display_name, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+
+            # TITLE WRAPPING LOGIC
+            max_line_chars = 24
+            if len(show_name) <= max_line_chars:
+                draw.text((title_x, y_offset), show_name, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+            else:
+                # Find the space character closest to the 24th character
+                split_idx = show_name.rfind(' ', 0, max_line_chars + 1)
+                if split_idx == -1: split_idx = max_line_chars # Fallback if no space
+
+                line1 = show_name[:split_idx].strip()
+                line2 = show_name[split_idx:].strip()
+
+                # Limit line 2 to prevent excessive length if needed (optional)
+                if len(line2) > 30: line2 = line2[:27] + "..."
+
+                draw.text((title_x, y_offset), line1, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+                y_offset += int(line_height * 0.6) # Move down for the wrapped line
+                draw.text((title_x, y_offset), line2, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
 
             start_time += datetime.timedelta(seconds=duration)
             y_offset += (line_height * 0.8)
+            drawn_count += 1
+
 
         # --- 7. DRAW THE TOP-RIGHT GRAPHIC (FLAIR OR Q&A) ---
         flair_dir = os.path.join("assets", "flair")
@@ -125,7 +162,7 @@ class GraphicsEngine:
         img = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
-        SAFE_X = int(target_width * 0.05)
+        SAFE_X = int(target_width * 0.025)
         SAFE_Y = int(target_height * 0.85) 
 
         title = metadata.get("title") or "Unknown Title"
@@ -136,18 +173,18 @@ class GraphicsEngine:
         artist_size = int(target_height * 0.035)
         title_size = int(target_height * 0.045)
 
-        artist_font = ImageFont.truetype(self.font_path, artist_size)
-        title_font = ImageFont.truetype(self.font_path, title_size)
+        artist_font = ImageFont.truetype(self.music_font, artist_size)
+        title_font = ImageFont.truetype(self.music_font, title_size)
 
         y_offset = SAFE_Y
-        draw.text((SAFE_X, y_offset), title, font=title_font, fill=(255, 255, 255, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+        draw.text((SAFE_X, y_offset), title, font=title_font, fill=(219, 223, 255, 255), stroke_width=3, stroke_fill=(5, 8, 33,255))
         y_offset += int(title_size * 1.2)
         
-        draw.text((SAFE_X, y_offset), artist, font=artist_font, fill=(210, 210, 210, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+        draw.text((SAFE_X, y_offset), artist, font=artist_font, fill=(211, 214, 255, 255), stroke_width=3, stroke_fill=(5, 8, 33,255))
         y_offset += int(artist_size * 1.2)
         
         if album:
-            draw.text((SAFE_X, y_offset), album + (f", {year}" if year else ""), font=artist_font, fill=(180, 180, 180, 255), stroke_width=3, stroke_fill=(0,0,0,255))
+            draw.text((SAFE_X, y_offset), album + (f", {year}" if year else ""), font=artist_font, fill=(211, 214, 255, 255), stroke_width=3, stroke_fill=(0,0,0,255))
         elif not album and year:
             draw.text((SAFE_X, y_offset), year, font=artist_font, fill=(180, 180, 180, 255), stroke_width=3, stroke_fill=(0,0,0,255))
 
