@@ -238,7 +238,7 @@
                     "mode": "sequential",
                     "sync_global": true,
                     "group": "Star_Trek",
-                    "resolved_show": "Star Trek Voyager"
+                    "resolved_show": "Star Trek Deep Space Nine"
                 },
                 {
                     "type": "anchor",
@@ -265,15 +265,16 @@
             "bookmarks": {
                 "For Alien Eyes Only": 1,
                 "Farscape Season 1, 2, 3 & 4 + Extras BDRip TSV": 1,
-                "Batman - The Animated Series": 9,
-                "Star Trek Deep Space Nine": 130,
-                "Moonlighting": 8,
+                "Batman - The Animated Series": 79,
+                "Star Trek Deep Space Nine": 131,
+                "Moonlighting": 11,
                 "The Simpsons": 1,
-                "Pete & Pete": 10,
+                "Pete & Pete": 27,
                 "30 Rock (2006)": 1,
-                "Farscape": 8,
-                "The X-Files": 7,
-                "Star Trek The Next Generation": 74
+                "Farscape": 11,
+                "The X-Files": 10,
+                "Star Trek The Next Generation": 75,
+                "Star Trek Voyager": 8
             }
         }
     },

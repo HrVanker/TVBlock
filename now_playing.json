@@ -6,7 +6,23 @@
     },
     "upcoming": [
         {
-            "show": "Star Trek Voyager",
+            "show": "Pete & Pete",
+            "title": "[SEQUENTIAL]"
+        },
+        {
+            "show": "Batman - The Animated Series",
+            "title": "[SEQUENTIAL]"
+        },
+        {
+            "show": "COMMERCIALS",
+            "title": "120s - 240s Block"
+        },
+        {
+            "show": "Farscape",
+            "title": "[SEQUENTIAL]"
+        },
+        {
+            "show": "Star_Trek",
             "title": "[SEQUENTIAL]"
         },
         {
@@ -14,12 +30,12 @@
             "title": "[RANDOM_NO_RERUNS]"
         },
         {
-            "show": "The X-Files",
-            "title": "[SEQUENTIAL]"
-        },
-        {
             "show": "COMMERCIALS",
             "title": "120s - 240s Block"
+        },
+        {
+            "show": "The X-Files",
+            "title": "[SEQUENTIAL]"
         },
         {
             "show": "Moonlighting",
@@ -28,23 +44,7 @@
         {
             "show": "Music Video",
             "title": "[RANDOM]"
-        },
-        {
-            "show": "Pete & Pete",
-            "title": "[SEQUENTIAL]"
-        },
-        {
-            "show": "COMMERCIALS",
-            "title": "120s - 240s Block"
-        },
-        {
-            "show": "Batman - The Animated Series",
-            "title": "[SEQUENTIAL]"
-        },
-        {
-            "show": "Farscape",
-            "title": "[SEQUENTIAL]"
         }
     ],
-    "last_update": 1782508024.1670945
+    "last_update": 1782511080.3071797
 }

@@ -10,8 +10,6 @@ import sys
 import threading
 import time
 import datetime
-import http.server
-import socketserver
 
 # Check if we are running as a bundled exe or a script
 if getattr(sys, 'frozen', False):
@@ -48,7 +46,7 @@ DEFAULT_CONFIG = {
     }
 }
 
-# --- CUSTOM DIALOG FOR EDITING SCHEDULE SLOTS ---
+# --- THE RESTORED SLOT EDITOR ---
 class SlotEditorDialog(tk.Toplevel):
     def __init__(self, parent, s_type, name, current_vals):
         super().__init__(parent)
@@ -57,11 +55,11 @@ class SlotEditorDialog(tk.Toplevel):
         self.result = None
         self.s_type = s_type
         
-        # Parse current values
+        # Parse current values (type, name, count, mode, sync, override)
         c_count = int(current_vals[2]) if current_vals[2] else 1
         c_mode = current_vals[3] if current_vals[3] else "sequential"
         c_sync = True if current_vals[4] == "Yes" else False
-        c_override = current_vals[5] if current_vals[5] else ""
+        c_override = current_vals[5] if len(current_vals) > 5 and current_vals[5] else ""
 
         frame = tk.Frame(self, padx=20, pady=20)
         frame.pack(fill=tk.BOTH, expand=True)
@@ -73,7 +71,7 @@ class SlotEditorDialog(tk.Toplevel):
         tk.Label(frame, text="Playback Mode:", font=("Arial", 10, "bold")).grid(row=1, column=0, sticky=tk.W, pady=5)
         self.var_mode = tk.StringVar(value=c_mode)
         
-        # Only TV Shows support complex modes. Movies default to Random
+        # Only TV Shows support complex modes. Movies/Music Videos default to Random
         if s_type in ["movie", "music_video"]:
             tk.Label(frame, text="Random").grid(row=1, column=1, sticky=tk.W)
             self.var_mode.set("random")
@@ -121,7 +119,6 @@ class TVStationService:
         self.skip_flag = False
         self.current_meta = {"title": "Offline", "show": "", "percent": 0}
         self.gfx_engine = GraphicsEngine()
-
         self.load_components()
 
     def load_components(self):
@@ -129,28 +126,33 @@ class TVStationService:
             try:
                 with open(CONFIG_FILE, 'w') as f:
                     json.dump(DEFAULT_CONFIG, f, indent=4)
-            except Exception as e:
-                print(f"Error creating default config: {e}")
+            except Exception as e: print(f"Error creating default config: {e}")
 
-        with open(CONFIG_FILE, 'r') as f:
-            self.config = json.load(f)
+        with open(CONFIG_FILE, 'r') as f: self.config = json.load(f)
             
-        if "blacklist" not in self.config:
-            self.config["blacklist"] = []
+        if "blacklist" not in self.config: self.config["blacklist"] = []
             
-        self.inventory = InventoryManager()
+        scanner = InventoryManager()
         self.library = {}
         tv_path = self.config['paths'].get('tv', '')
         if tv_path and os.path.exists(tv_path):
-            self.library = self.inventory.scan_series(tv_path)
+            self.library = scanner.scan_series(tv_path)
         
         self.movie_library = []
         self.movie_map = {}
         mov_path = self.config['paths'].get('movies', '')
         if mov_path and os.path.exists(mov_path):
-            self.movie_library = self.inventory.scan_movies(mov_path)
-            for m in self.movie_library:
-                self.movie_map[os.path.basename(m)] = m
+            self.movie_library = scanner.scan_movies(mov_path)
+            for m in self.movie_library: self.movie_map[os.path.basename(m)] = m
+            
+        # RESTORED: MUSIC VIDEO SCANNER
+        self.music_video_library = []
+        self.music_video_map = {}
+        mv_path = self.config['paths'].get('music_videos', '')
+        if mv_path and os.path.exists(mv_path):
+            # Using standard movie scan if scan_music_videos isn't updated in InventoryManager yet
+            self.music_video_library = scanner.scan_movies(mv_path) if not hasattr(scanner, 'scan_music_videos') else scanner.scan_music_videos(mv_path)
+            for mv in self.music_video_library: self.music_video_map[os.path.basename(mv)] = mv
 
         comm_path = self.config['paths'].get('commercials', '')
         if comm_path and os.path.exists(comm_path):
@@ -159,62 +161,13 @@ class TVStationService:
             class DummyComm:
                 def generate_break(self, a, b): return []
             self.comm_manager = DummyComm()
-
-        self.music_video_library = []
-        self.music_video_map = {}
-        mv_path = self.config['paths'].get('music_videos', '')
-        if mv_path and os.path.exists(mv_path):
-            self.music_video_library = self.inventory.scan_music_videos(mv_path)
-            for mv in self.music_video_library:
-                self.music_video_map[os.path.basename(mv)] = mv
         
-        # Export cache for Discord Bot
-        self.inventory.export_cache()
-
-        self.sync_discord_channels()
-
         self.scheduler = ScheduleEngine(
             self.library, 
             movie_library=self.movie_library, 
             music_video_library=self.music_video_library,
             config_file=CONFIG_FILE
         )
-
-    def sync_discord_channels(self):
-        """Ingests channel config files from the discord_channels/ folder."""
-        drop_zone = os.path.join(app_dir, "discord_channels")
-        if not os.path.exists(drop_zone):
-            os.makedirs(drop_zone)
-            return
-
-        print(f"DEBUG: Syncing Discord channels from {drop_zone}")
-        changed = False
-        for filename in os.listdir(drop_zone):
-            if filename.lower().endswith(".json"):
-                file_path = os.path.join(drop_zone, filename)
-                try:
-                    with open(file_path, "r") as f:
-                        chan_data = json.load(f)
-                    
-                    # Validate basic structure
-                    if "schedule_block" in chan_data:
-                        chan_name = f"[Discord] {os.path.splitext(filename)[0]}"
-                        self.config["channels"][chan_name] = {
-                            "settings": chan_data.get("settings", {
-                                "commercial_frequency": 3,
-                                "commercial_min_sec": 60,
-                                "commercial_max_sec": 120
-                            }),
-                            "schedule_block": chan_data["schedule_block"],
-                            "bookmarks": self.config["channels"].get(chan_name, {}).get("bookmarks", {})
-                        }
-                        changed = True
-                        print(f"DEBUG: Ingested Discord channel: {chan_name}")
-                except Exception as e:
-                    print(f"ERROR: Failed to ingest Discord channel {filename}: {e}")
-
-        if changed:
-            self.save_config()
 
     def start_broadcast(self, window_id):
         if self.running: return
@@ -223,8 +176,7 @@ class TVStationService:
         self.thread = threading.Thread(target=self._broadcast_loop, daemon=True)
         self.thread.start()
 
-    def stop_broadcast(self):
-        self.running = False
+    def stop_broadcast(self): self.running = False
 
     def skip_current(self):
         if self.running:
@@ -232,28 +184,27 @@ class TVStationService:
             self.skip_flag = True
 
     def save_config(self):
-        with open(CONFIG_FILE, 'w') as f:
-            json.dump(self.config, f, indent=4)
-        if hasattr(self, 'scheduler'):
-            self.scheduler.config = self.config
+        with open(CONFIG_FILE, 'w') as f: json.dump(self.config, f, indent=4)
+        if hasattr(self, 'scheduler'): self.scheduler.hot_reload()
 
-    def _get_random_bug_path(self):
+    def _get_random_bug_filter(self):
         bug_dir = os.path.join(app_dir, "assets", "bugs")
         if not os.path.exists(bug_dir): return None
-        bugs = [f for f in os.listdir(bug_dir) if f.lower().endswith('.png')] or \
-                [f for f in os.listdir(bug_dir) if f.lower().endswith('.gif')]
+        bugs = [f for f in os.listdir(bug_dir) if f.lower().endswith('.gif')]
         if not bugs: return None
-        return os.path.join(bug_dir, random.choice(bugs))
+            
+        selected_bug = random.choice(bugs)
+        bug_path = os.path.join(bug_dir, selected_bug)
+        bug_path_ffmpeg = bug_path.replace("\\", "/").replace(":", "\\:")
+        bug_height = 50
+        return f"lavfi=[movie=filename='{bug_path_ffmpeg}':loop=0,scale=-1:{bug_height},setsar=1[logo];[in][logo]overlay=W-w-25:H-h-25]"
 
     def _broadcast_loop(self):
         player = None
         try:
             player = mpv.MPV(
-                af='lavfi=[dynaudnorm=f=75:g=31:n=0:p=0.58]',
-                wid=self.window_id,
-                input_default_bindings=True,
-                input_vo_keyboard=True,
-                deinterlace="auto",
+                af='lavfi=[dynaudnorm=f=75:g=31:n=0:p=0.58]', wid=self.window_id,
+                input_default_bindings=True, input_vo_keyboard=True,
                 log_handler=lambda level, prefix, text: print(f"MPV [{level}] {prefix}: {text}") if level in ['error', 'warning'] else None
             )
 
@@ -261,44 +212,22 @@ class TVStationService:
                 current_content = self.scheduler.get_next_item()
                 current_playlist = self._prepare_playlist(current_content)
                 
-                # --- METADATA EXTRACTION ---
-                mv_metadata = {}
                 if current_content['type'] == 'video':
                     show_title = current_content.get('show', 'Unknown Show')
                     ep_title = os.path.basename(current_content.get('path', 'Unknown Episode'))
-                    
-                    from tinytag import TinyTag
-                    try:
-                        tag = TinyTag.get(current_content['path'])
-                        if tag.title:
-                            ep_title = tag.title
-                            
-                        # If it's a music video, grab extra tags for the MTV bug
-                        if show_title == "Music Video":
-                            mv_metadata = {
-                                "artist": tag.artist,
-                                "title": tag.title,
-                                "album": tag.album,
-                                "year": tag.year
-                            }
-                    except Exception as e:
-                        pass # Fallback to filename if tags fail
-                        
                     self.current_meta.update({"show": show_title, "title": ep_title})
-                            
                 elif current_content['type'] == 'break':
                     self.current_meta.update({"show": "Commercial Break", "title": "Messages"})
 
                 # --- BUMPER SEQUENCE ---
                 if current_content['type'] == 'break':
-                    real_comm_duration = 15
+                    real_comm_duration = 15 
                     from tinytag import TinyTag
                     for clip in current_playlist:
                         try:
                             tag = TinyTag.get(clip)
                             if tag.duration: real_comm_duration += tag.duration
-                        except:
-                            real_comm_duration += 30 
+                        except: real_comm_duration += 30 
                             
                     comm_duration = int(real_comm_duration)
                     
@@ -325,50 +254,47 @@ class TVStationService:
                     player.play(bumper_bg)
                     timeout = time.time() + 5.0 
                     while player.dwidth is None and time.time() < timeout and self.running: time.sleep(0.1) 
-                    bg_width = player.dwidth if player.dwidth else 1920
-                    bg_height = player.dheight if player.dheight else 1080
+                    bg_width = 1920
+                    bg_height = 1080
 
                     if bumper_music:
                         try:
                             music_path_mpv = bumper_music.replace("\\", "/")
                             player.command("audio-add", music_path_mpv, "select")
-                            player.volume = 100  
-                        except Exception as e: pass
+                            player.volume = 75  
+                        except: pass
 
                     temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
-                    bumper_data = self.gfx_engine.generate_transparent_bumper(
-                        upcoming_shows, comm_duration, output_path=temp_overlay, target_width=1920, target_height=1080
-                    )
+                    self.gfx_engine.generate_transparent_bumper(upcoming_shows, comm_duration, output_path=temp_overlay, target_width=bg_width, target_height=bg_height)
 
-                    def apply_osd(img_path, layer=1):
-                        try:
-                            img = Image.open(img_path).convert("RGBA")
-                            r, g, b, a = img.split()
-                            img_bgra = Image.merge("RGBA", (b, g, r, a))
-                            bgra_path = img_path.replace(".png", ".bgra")
-                            with open(bgra_path, "wb") as f: f.write(img_bgra.tobytes())
-                            w, h = img.size
-                            player.command("overlay-add", layer, 0, 0, bgra_path.replace("\\", "/"), 0, "bgra", w, h, w * 4)
-                        except Exception as e: pass
+                    temp_overlay_ffmpeg = temp_overlay.replace("\\", "/").replace(":", "\\:")
+                    bumper_filter = f"lavfi=[movie=filename='{temp_overlay_ffmpeg}'[logo];[in][logo]overlay=0:0]"
+                    
+                    try:
+                        img = Image.open(temp_overlay).convert("RGBA")
+                        r, g, b, a = img.split()
+                        img_bgra = Image.merge("RGBA", (b, g, r, a))
+                        bgra_path = os.path.join(app_dir, "assets", "temp_overlay.bgra")
+                        with open(bgra_path, "wb") as f: f.write(img_bgra.tobytes())
+                        w, h = img.size
+                        player.command("overlay-add", 1, 0, 0, bgra_path.replace("\\", "/"), 0, "bgra", w, h, w * 4)
+                    except Exception as e: print(f"DEBUG: Native OSD Bumper Error: {e}")
 
-                    apply_osd(bumper_data[1])
+                    bug_filter = self._get_random_bug_filter()
+                    if bug_filter:
+                        # UNSILENCED: Let's see why the bug is crashing
+                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                        except Exception as e: print(f"DEBUG: Station Bug Filter Error (Bumper): {e}")
 
                     bumper_start_time = time.time()
-                    bumper_duration = 29  
-                    qa_swapped = False
+                    bumper_duration = 14  
                     
                     while not getattr(player, 'idle_active', True) and self.running:
-                        elapsed = time.time() - bumper_start_time
-                        if bumper_data[0] == "qa" and not qa_swapped and elapsed >= (bumper_duration / 2):
-                            apply_osd(bumper_data[2]) 
-                            qa_swapped = True
-
                         if self.skip_flag:
                             player.command("stop")
                             self.skip_flag = False
                             break
-                            
-                        if elapsed >= bumper_duration:
+                        if time.time() - bumper_start_time >= bumper_duration:
                             player.command("stop")
                             break
                         time.sleep(0.1)
@@ -376,50 +302,20 @@ class TVStationService:
                     player.volume = 100
                     try: player.command("overlay-remove", 1) 
                     except: pass
-                    
-                # --- PLAY CHUNK (Shows or Commercials) ---
+                    try: player.command("vf", "remove", "@stationbug")
+                    except: pass
+
+                # --- PLAY CHUNK ---
                 for filepath in current_playlist:
                     if not self.running: break
                     player.play(filepath)
+                    time.sleep(0.5)
                     
-                    # Wait for video to initialize dimensions
-                    timeout = time.time() + 5.0
-                    while player.dwidth is None and time.time() < timeout and self.running: time.sleep(0.1)
-                    
-                    # Prepare MTV Graphic if applicable
-                    mtv_bug_path = os.path.join(app_dir, "assets", "mtv_bug.png")
-                    if mv_metadata:
-                        v_width = 1920
-                        v_height = 1080
-                        
-                        self.gfx_engine.generate_mtv_bug(
-                            mv_metadata, 
-                            output_path=mtv_bug_path, 
-                            target_width=v_width, 
-                            target_height=v_height
-                        )
-
-                    def apply_layer_osd(img_path, layer=2):
-                        try:
-                            img = Image.open(img_path).convert("RGBA")
-                            r, g, b, a = img.split()
-                            img_bgra = Image.merge("RGBA", (b, g, r, a))
-                            bgra_path = img_path.replace(".png", ".bgra").replace(".gif", ".bgra")
-                            with open(bgra_path, "wb") as f: f.write(img_bgra.tobytes())
-                            w, h = img.size
-                            player.command("overlay-add", layer, 0, 0, bgra_path.replace("\\", "/"), 0, "bgra", w, h, w * 4)
-                        except Exception as e: pass
-
-                    # Timers
                     mid_bug_shown = False
                     end_bug_shown = False
-                    remove_station_bug_at = 0
+                    remove_bug_at_time = 0
+                    bug_display_duration = 15 
                     
-                    mtv_start_shown = False
-                    mtv_end_shown = False
-                    remove_mtv_bug_at = 0
-                    
-                    # --- MONITOR LOOP ---
                     while not getattr(player, 'idle_active', True) and self.running:
                         if self.skip_flag:
                             duration = player.duration if player.duration else 0
@@ -437,59 +333,37 @@ class TVStationService:
                             self.current_meta["percent"] = (curr_time / duration) * 100
 
                             if current_content['type'] == 'video':
-                                
-                                # 1. Handle Station Logo Bug (Switch to Overlay Layer 3)
-                                if remove_station_bug_at > 0 and time.time() >= remove_station_bug_at:
-                                    try: player.command("overlay-remove", 3)
+                                if remove_bug_at_time > 0 and time.time() >= remove_bug_at_time:
+                                    try: player.command("vf", "remove", "@stationbug")
                                     except: pass
-                                    remove_station_bug_at = 0
+                                    remove_bug_at_time = 0
 
-                                if current_content['show'] != "Music Video":
-                                    if not mid_bug_shown and curr_time >= (duration / 2):
-                                        bug_path = self._get_random_bug_path()
-                                        if bug_path:
-                                            apply_layer_osd(bug_path, layer=3)
-                                            remove_station_bug_at = time.time() + 15
-                                        mid_bug_shown = True
+                                if not mid_bug_shown and curr_time >= (duration / 2):
+                                    bug_filter = self._get_random_bug_filter()
+                                    if bug_filter:
+                                        # UNSILENCED: Let's see why the bug is crashing
+                                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                        except Exception as e: print(f"DEBUG: Station Bug Filter Error (Mid): {e}")
+                                        remove_bug_at_time = time.time() + bug_display_duration
+                                    mid_bug_shown = True
 
-                                    if not end_bug_shown and curr_time >= (duration - 60):
-                                        bug_path = self._get_random_bug_path()
-                                        if bug_path:
-                                            apply_layer_osd(bug_path, layer=3)
-                                            remove_station_bug_at = time.time() + 15
-                                        end_bug_shown = True
-                                
-                                # 2. Handle MTV Lower-Third Bug (OSD Layer 2)
-                                if current_content['show'] == "Music Video" and mv_metadata:
-                                    if remove_mtv_bug_at > 0 and time.time() >= remove_mtv_bug_at:
-                                        try: player.command("overlay-remove", 2)
-                                        except: pass
-                                        remove_mtv_bug_at = 0
-
-                                    # Flash at the start (0 to 10 seconds)
-                                    if not mtv_start_shown and curr_time < 10:
-                                        apply_layer_osd(mtv_bug_path, layer=2)
-                                        mtv_start_shown = True
-                                        remove_mtv_bug_at = time.time() + 10
-
-                                    # Flash at the end (Last 10 seconds)
-                                    if not mtv_end_shown and curr_time >= (duration - 10) and duration > 20:
-                                        apply_layer_osd(mtv_bug_path, layer=2)
-                                        mtv_end_shown = True
-                                        remove_mtv_bug_at = time.time() + 10
-
+                                if not end_bug_shown and curr_time >= (duration - 60):
+                                    bug_filter = self._get_random_bug_filter()
+                                    if bug_filter:
+                                        # UNSILENCED: Let's see why the bug is crashing
+                                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
+                                        except Exception as e: print(f"DEBUG: Station Bug Filter Error (End): {e}")
+                                        remove_bug_at_time = time.time() + bug_display_duration
+                                    end_bug_shown = True
                         time.sleep(0.1)
 
-                    # Cleanup at the end of the video chunk
                     if current_content['type'] == 'video' and not self.skip_flag and self.running:
                         self.update_history(current_content['show'], current_content['path'], "watched", 100)
 
-                    try: player.command("overlay-remove", 3)
-                    except: pass
-                    try: player.command("overlay-remove", 2)
+                    try: player.command("vf", "remove", "@stationbug")
                     except: pass
 
-        except Exception as e: print(f"DEBUG: Broadcast Loop Terminated Safely. ({e})")
+        except Exception as e: print(f"DEBUG: Broadcast Loop Terminated Safely.")
         finally:
             if player:
                 try: player.terminate()
@@ -511,7 +385,6 @@ class TVStationService:
             try:
                 with open(HISTORY_FILE, 'r') as f: history = json.load(f)
             except: pass
-
         if "playback_log" not in history: history["playback_log"] = {}
         filename = os.path.basename(path)
         entry = {
@@ -519,10 +392,8 @@ class TVStationService:
             "percent_watched": round(percent, 2), "last_played": str(datetime.datetime.now())
         }
         history["playback_log"][filename] = entry
-        
         with open(HISTORY_FILE, 'w') as f: json.dump(history, f, indent=4)
         self.scheduler.history = self.scheduler._load_json(HISTORY_FILE)
-
 
 class StationManagerApp:
     def __init__(self, root):
@@ -538,7 +409,6 @@ class StationManagerApp:
             messagebox.showinfo("Welcome!", "Welcome to your TV Station!\n\nIt looks like this is a fresh start. Please select your 'TV Shows Folder' in the settings below to begin.")
         
         self.update_ui_loop()
-        start_ipc_server(self)
 
     def create_widgets(self):
         self.notebook = ttk.Notebook(self.root)
@@ -623,7 +493,6 @@ class StationManagerApp:
         show_name = self.series_list.get(sel[0])
         series_data = self.station.library[show_name]
         blacklist = self.station.config.get("blacklist", [])
-        self.station.scheduler.history = self.station.scheduler._load_history()
         playback_log = self.station.scheduler.history.get("playback_log", {})
         for i in self.ep_tree.get_children(): self.ep_tree.delete(i)
         for season_num in sorted(series_data.keys()):
@@ -631,33 +500,22 @@ class StationManagerApp:
             season_text = f"Season {season_num}"
             all_eps = series_data[season_num]
             disabled_count = sum(1 for ep in all_eps if ep in blacklist)
-            season_tag = "normal"
-            season_status = ""
+            season_tag, season_status = "normal", ""
             if disabled_count == len(all_eps):
-                season_tag = "disabled"
-                season_status = "⛔ All Disabled"
-            elif disabled_count > 0:
-                season_status = f"⚠️ {disabled_count} Disabled"
+                season_tag, season_status = "disabled", "⛔ All Disabled"
+            elif disabled_count > 0: season_status = f"⚠️ {disabled_count} Disabled"
             self.ep_tree.insert("", tk.END, iid=season_id, text=season_text, open=False, values=(season_text, season_status, ""), tags=(season_tag,))
             for ep_path in all_eps:
                 filename = os.path.basename(ep_path)
                 if ep_path in blacklist:
-                    status = "⛔ DISABLED"
-                    last_played = "-"
-                    tag = "disabled"
+                    status, last_played, tag = "⛔ DISABLED", "-", "disabled"
                 else:
-                    status = "Unwatched"
-                    last_played = "-"
-                    tag = "normal"
+                    status, last_played, tag = "Unwatched", "-", "normal"
                     if filename in playback_log:
                         data = playback_log[filename]
                         pct = data.get('percent_watched', 0)
-                        if data['status'] == 'watched':
-                            status = "✅ Watched"
-                            tag = "watched"
-                        elif data['status'] == 'partial':
-                            status = f"⏸ Partial ({int(pct)}%)"
-                            tag = "partial"
+                        if data['status'] == 'watched': status, tag = "✅ Watched", "watched"
+                        elif data['status'] == 'partial': status, tag = f"⏸ Partial ({int(pct)}%)", "partial"
                         raw_date = data.get('last_played', '')
                         if raw_date: last_played = raw_date.split('.')[0]
                 self.ep_tree.insert(season_id, tk.END, iid=ep_path, values=(filename, status, last_played), tags=(tag,))
@@ -669,43 +527,38 @@ class StationManagerApp:
             self.context_menu.post(event.x_root, event.y_root)
 
     def toggle_blacklist(self):
-        selected_item = self.ep_tree.selection()
-        if not selected_item: return
-        item_id = selected_item[0]
+        selected = self.ep_tree.selection()
+        if not selected: return
+        item_id = selected[0]
         blacklist = self.station.config["blacklist"]
         changed = False
         if item_id.startswith("SEASON_ID_"):
             children = self.ep_tree.get_children(item_id)
             any_enabled = False
-            for child_path in children:
-                if child_path not in blacklist:
+            for c in children:
+                if c not in blacklist:
                     any_enabled = True
                     break
-            for child_path in children:
-                if any_enabled:
-                    if child_path not in blacklist:
-                        blacklist.append(child_path)
-                        changed = True
-                else:
-                    if child_path in blacklist:
-                        blacklist.remove(child_path)
-                        changed = True
+            for c in children:
+                if any_enabled and c not in blacklist:
+                    blacklist.append(c)
+                    changed = True
+                elif not any_enabled and c in blacklist:
+                    blacklist.remove(c)
+                    changed = True
         else:
-            file_path = item_id
-            if file_path in blacklist: blacklist.remove(file_path)
-            else: blacklist.append(file_path)
+            if item_id in blacklist: blacklist.remove(item_id)
+            else: blacklist.append(item_id)
             changed = True
         if changed:
             self.station.save_config()
-            open_seasons = []
-            for child in self.ep_tree.get_children():
-                if self.ep_tree.item(child, "open"): open_seasons.append(child)
+            open_seasons = [c for c in self.ep_tree.get_children() if self.ep_tree.item(c, "open")]
             self.on_series_select(None)
-            for season_id in open_seasons:
-                if self.ep_tree.exists(season_id): self.ep_tree.item(season_id, open=True)
+            for s_id in open_seasons:
+                if self.ep_tree.exists(s_id): self.ep_tree.item(s_id, open=True)
             if self.ep_tree.exists(item_id):
                 self.ep_tree.selection_set(item_id)
-                self.ep_tree.focus(item_id) 
+                self.ep_tree.focus(item_id)
 
     def toggle_station(self):
         if not self.station.running:
@@ -720,28 +573,15 @@ class StationManagerApp:
             window_id = self.video_window.winfo_id()
             self.station.start_broadcast(window_id)
             self.btn_start.config(text="⏹ STOP STATION", bg="red")
-            # Force immediate export to notify Discord
-            self.last_export_time = 0 
         else:
             self.station.stop_broadcast()
             self.root.after(500, self._destroy_video_window)
             self.btn_start.config(text="▶ START STATION", bg="green")
-            # Force immediate export to notify Discord
-            self.last_export_time = 0 
 
     def _destroy_video_window(self):
         if hasattr(self, 'video_window') and self.video_window:
             self.video_window.destroy()
             self.video_window = None
-
-    def ipc_sync_channels(self):
-        """Schedule a silent sync on the main thread."""
-        self.root.after(0, self._silent_discord_sync)
-
-    def _silent_discord_sync(self):
-        """Perform the sync without showing a messagebox."""
-        self.station.sync_discord_channels()
-        self.refresh_channel_dropdown()
 
     def update_ui_loop(self):
         meta = self.station.current_meta
@@ -757,45 +597,14 @@ class StationManagerApp:
                 show = "COMMERCIALS"
                 title = f"{item['min']}s - {item['max']}s Block"
             self.up_next_tree.insert("", tk.END, values=(show, title))
-            
-        current_t = time.time()
-        if current_t - getattr(self, 'last_export_time', 0) >= 300:
-            self._export_now_playing(meta, upcoming)
-            self.last_export_time = current_t
-
         self.root.after(1000, self.update_ui_loop)
 
-    def _export_now_playing(self, meta, upcoming):
-        data = {
-            "now_playing": {
-                "show": meta['show'] if meta['show'] else "---",
-                "title": meta['title'],
-                "percent": round(meta['percent'], 1)
-            },
-            "upcoming": [
-                {
-                    "show": item.get('show', 'COMMERCIALS') if item['type'] != 'break' else "COMMERCIALS",
-                    "title": item.get('display', f"{item.get('min')}s - {item.get('max')}s Block") if item['type'] == 'break' else item.get('display', 'Unknown')
-                }
-                for item in upcoming
-            ],
-            "last_update": time.time()
-        }
-        file_path = os.path.join(app_dir, "now_playing.json")
-        try:
-            with open(file_path, "w") as f:
-                json.dump(data, f, indent=4)
-        except Exception as e:
-            print(f"Error exporting now_playing.json: {e}")
-
-    # --- PHASE 2: CHANNEL MANAGEMENT UI ---
+    # --- RESTORED: MULTI-CHANNEL SCHEDULE TAB ---
     def build_schedule_tab(self):
-        # 1. Top Channel Control Bar
         top_bar = tk.Frame(self.tab_schedule, bg="#ddd", pady=10)
         top_bar.pack(fill=tk.X)
         
         tk.Label(top_bar, text="Active Channel: ", bg="#ddd", font=("Arial", 11, "bold")).pack(side=tk.LEFT, padx=(20, 5))
-        
         self.channel_var = tk.StringVar()
         self.cb_channels = ttk.Combobox(top_bar, textvariable=self.channel_var, state="readonly", width=30)
         self.cb_channels.pack(side=tk.LEFT, padx=5)
@@ -803,14 +612,13 @@ class StationManagerApp:
         
         tk.Button(top_bar, text="➕ New Channel", command=self.create_channel).pack(side=tk.LEFT, padx=10)
         tk.Button(top_bar, text="❌ Delete", fg="red", command=self.delete_channel).pack(side=tk.LEFT)
-        tk.Button(top_bar, text="🤖 Sync Discord", bg="#7289da", fg="white", command=self.manual_discord_sync).pack(side=tk.LEFT, padx=10)
 
-        # 2. Main Paned Layout
         paned = ttk.PanedWindow(self.tab_schedule, orient=tk.HORIZONTAL)
         paned.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         col1 = tk.LabelFrame(paned, text="1. Source Bin")
         paned.add(col1, weight=1)
+        
         tk.Label(col1, text="📺 TV Shows", font=("Arial", 9, "bold")).pack(anchor=tk.W)
         self.lst_source_shows = tk.Listbox(col1, height=6, exportselection=False)
         self.lst_source_shows.pack(fill=tk.X, padx=5)
@@ -824,8 +632,8 @@ class StationManagerApp:
         self.lst_source_groups.pack(fill=tk.X, padx=5)
         self.refresh_source_groups()
         
-        tk.Label(col1, text="🎬 Individual Movies", font=("Arial", 9, "bold")).pack(anchor=tk.W, pady=(5,0))
-        self.lst_source_movies = tk.Listbox(col1, height=6, exportselection=False)
+        tk.Label(col1, text="🎬 Movies", font=("Arial", 9, "bold")).pack(anchor=tk.W, pady=(5,0))
+        self.lst_source_movies = tk.Listbox(col1, height=4, exportselection=False)
         self.lst_source_movies.pack(fill=tk.X, padx=5)
         if hasattr(self.station, 'movie_map'):
             for m_name in sorted(self.station.movie_map.keys()): self.lst_source_movies.insert(tk.END, m_name)
@@ -834,21 +642,21 @@ class StationManagerApp:
         self.lst_source_mvs = tk.Listbox(col1, height=4, exportselection=False)
         self.lst_source_mvs.pack(fill=tk.X, padx=5)
         if hasattr(self.station, 'music_video_map'):
-            for mv_name in sorted(self.station.music_video_map.keys()): 
-                self.lst_source_mvs.insert(tk.END, mv_name)
+            for mv_name in sorted(self.station.music_video_map.keys()): self.lst_source_mvs.insert(tk.END, mv_name)
             
         tk.Label(col1, text="⭐ Special Tokens", font=("Arial", 9, "bold")).pack(anchor=tk.W, pady=(5,0))
         self.lst_tokens = tk.Listbox(col1, height=2, exportselection=False)
         self.lst_tokens.pack(fill=tk.X, padx=5)
         self.lst_tokens.insert(tk.END, "[Random Movie]")
         self.lst_tokens.insert(tk.END, "[Random Music Video]")
+        
         btn_add = tk.Button(col1, text="ADD TO CHANNEL ➡", bg="#ddd", font=("Arial", 10, "bold"), command=self.add_item_to_schedule)
         btn_add.pack(pady=10, fill=tk.X, padx=20)
         
         col2 = tk.LabelFrame(paned, text="2. Channel Programming Block")
         paned.add(col2, weight=3)
         
-        # --- EXPANDED TREEVIEW COLUMNS ---
+        # RESTORED: 6 COLUMN TREEVIEW
         columns = ("type", "name", "count", "mode", "sync", "override")
         self.sched_tree = ttk.Treeview(col2, columns=columns, show="headings", selectmode="browse")
         self.sched_tree.heading("type", text="Type")
@@ -880,15 +688,12 @@ class StationManagerApp:
         tk.Label(col3, text="Commercial Frequency (Items)", font=("Arial", 9, "bold")).pack(anchor=tk.W, pady=(10,0), padx=5)
         self.var_comm_freq = tk.IntVar()
         tk.Scale(col3, variable=self.var_comm_freq, from_=1, to=10, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5)
-        
         tk.Label(col3, text="Min Duration (Seconds)", font=("Arial", 9, "bold")).pack(anchor=tk.W, pady=(10,0), padx=5)
         self.var_comm_min = tk.IntVar()
         tk.Entry(col3, textvariable=self.var_comm_min).pack(fill=tk.X, padx=5)
-        
         tk.Label(col3, text="Max Duration (Seconds)", font=("Arial", 9, "bold")).pack(anchor=tk.W, pady=(10,0), padx=5)
         self.var_comm_max = tk.IntVar()
         tk.Entry(col3, textvariable=self.var_comm_max).pack(fill=tk.X, padx=5)
-        
         tk.Button(col3, text="💾 SAVE CHANNEL", bg="green", fg="white", font=("Arial", 12, "bold"), height=2, command=self.save_full_schedule).pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=20)
         
         self.refresh_channel_dropdown()
@@ -906,8 +711,7 @@ class StationManagerApp:
         if name and name not in self.station.config["channels"]:
             self.station.config["channels"][name] = {
                 "settings": {"commercial_frequency": 3, "commercial_min_sec": 60, "commercial_max_sec": 120},
-                "schedule_block": [],
-                "bookmarks": {}
+                "schedule_block": [], "bookmarks": {}
             }
             self.station.config["active_channel"] = name
             self.station.save_config()
@@ -920,54 +724,27 @@ class StationManagerApp:
             return
         if messagebox.askyesno("Confirm", f"Delete the channel '{target}'?"):
             del self.station.config["channels"][target]
-            
-            if target.startswith("[Discord] "):
-                safe_name = target.replace("[Discord] ", "", 1)
-                file_path = os.path.join(app_dir, "discord_channels", f"{safe_name}.json")
-                try:
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                        print(f"DEBUG: Deleted Discord channel file: {file_path}")
-                except Exception as e:
-                    print(f"ERROR: Failed to delete Discord channel file {file_path}: {e}")
-                    
             self.station.config["active_channel"] = "Default Channel"
             self.station.save_config()
             self.refresh_channel_dropdown()
-
-    def manual_discord_sync(self):
-        """Manually triggers a sync from the discord_channels/ folder."""
-        self.station.sync_discord_channels()
-        self.refresh_channel_dropdown()
-        messagebox.showinfo("Discord Sync", "Discord channels have been synchronized!")
 
     def change_channel(self, event=None):
         new_channel = self.channel_var.get()
         self.station.config["active_channel"] = new_channel
         self.station.save_config()
-        # Hot-reload the engine so Live TV switches instantly!
-        self.station.scheduler = ScheduleEngine(
-            self.station.library, 
-            movie_library=self.station.movie_library, 
-            music_video_library=self.station.music_video_library,
-            config_file=CONFIG_FILE
-        )
         self.load_channel_data()
 
     def load_channel_data(self):
-        # Clear Tree
         for i in self.sched_tree.get_children(): self.sched_tree.delete(i)
         
         active = self.channel_var.get()
         chan_data = self.station.config.get("channels", {}).get(active, {})
         
-        # Load Settings
         settings = chan_data.get("settings", {})
         self.var_comm_freq.set(settings.get("commercial_frequency", 3))
         self.var_comm_min.set(settings.get("commercial_min_sec", 60))
         self.var_comm_max.set(settings.get("commercial_max_sec", 120))
         
-        # Load Block
         block = chan_data.get("schedule_block", [])
         for slot in block:
             s_type = slot.get("type", "anchor")
@@ -975,17 +752,15 @@ class StationManagerApp:
             count = slot.get("count", 1)
             mode = slot.get("mode", "sequential")
             sync_str = "Yes" if slot.get("sync_global", False) else "No"
-            override = os.path.basename(slot.get("override_start", ""))
+            
+            # FIX: Keep the full path so save_full_schedule doesn't corrupt it!
+            override = slot.get("override_start", "")
             
             if s_type == "anchor": name = slot.get("show", "Unknown")
             elif s_type == "rotate": name = slot.get("group", "Unknown")
-            elif s_type == "movie": 
-                if slot.get("path"): name = os.path.basename(slot["path"])
-                else: name = "[Random Movie]"
-                sync_str = "-"
-            elif s_type == "music_video": 
-                if slot.get("path"): name = os.path.basename(slot["path"])
-                else: name = "[Random Music Video]"
+            elif s_type in ["movie", "music_video"]: 
+                if "path" in slot: name = os.path.basename(slot["path"])
+                else: name = "[Random Movie]" if s_type == "movie" else "[Random Music Video]"
                 sync_str = "-"
                 
             self.sched_tree.insert("", tk.END, values=(s_type, name, count, mode, sync_str, override))
@@ -1063,9 +838,6 @@ class StationManagerApp:
                 "sync_global": True if vals[4] == "Yes" else False
             }
             
-            # The treeview only shows the basename for UI neatness. If they set an override, we save the full path.
-            # If they didn't touch the override, and it was previously set, we need to handle that, 
-            # but for safety, the Dialog saves full paths, and treeview displays them. 
             if vals[5]: slot["override_start"] = vals[5]
 
             if s_type == "anchor": slot["show"] = name
@@ -1075,7 +847,9 @@ class StationManagerApp:
                 elif name in self.station.movie_map: slot["path"] = self.station.movie_map[name]
             elif s_type == "music_video":
                 if name == "[Random Music Video]": pass
-                elif name in self.station.music_video_map: slot["path"] = self.station.music_video_map[name]
+                elif hasattr(self.station, 'music_video_map') and name in self.station.music_video_map: 
+                    slot["path"] = self.station.music_video_map[name]
+
             new_block.append(slot)
             
         chan_data = self.station.config["channels"][active]
@@ -1085,14 +859,8 @@ class StationManagerApp:
         chan_data["settings"]["commercial_max_sec"] = self.var_comm_max.get()
         
         self.station.save_config()
-        
-        # Hot-reload the engine so Live TV recognizes the newly saved schedule
-        self.station.scheduler = ScheduleEngine(
-            self.station.library, 
-            movie_library=self.station.movie_library,
-            music_video_library=self.station.music_video_library,
-            config_file=CONFIG_FILE
-        )
+        # HOT RELOAD ENGAGED!
+        self.station.scheduler.hot_reload()
         messagebox.showinfo("Success", f"Channel '{active}' updated and station reloaded!")
 
     def refresh_source_groups(self):
@@ -1106,8 +874,8 @@ class StationManagerApp:
     def refresh_app_data(self):
         with open(CONFIG_FILE, 'r') as f: self.station.config = json.load(f)
         self.refresh_source_groups()
-        self.station.scheduler.rotation_groups = {} 
-        self.station.scheduler._init_rotations()    
+        self.station.scheduler.rotation_groups = self.station.config.get("rotation_groups", {})
+        self.station.scheduler._resolve_all_rotations()
 
     def build_settings_tab(self):
         frame = tk.Frame(self.tab_settings, padx=20, pady=20)
@@ -1119,18 +887,22 @@ class StationManagerApp:
         self.var_tv_path = tk.StringVar(value=self.station.config['paths'].get('tv', ''))
         tk.Entry(grid_frame, textvariable=self.var_tv_path, width=60).grid(row=0, column=1, padx=10)
         tk.Button(grid_frame, text="Browse...", command=lambda: self.browse_folder(self.var_tv_path)).grid(row=0, column=2)
+        
         tk.Label(grid_frame, text="Movies Folder:", font=("Arial", 10, "bold")).grid(row=1, column=0, sticky="w", pady=10)
         self.var_movie_path = tk.StringVar(value=self.station.config['paths'].get('movies', ''))
         tk.Entry(grid_frame, textvariable=self.var_movie_path, width=60).grid(row=1, column=1, padx=10)
         tk.Button(grid_frame, text="Browse...", command=lambda: self.browse_folder(self.var_movie_path)).grid(row=1, column=2)
+        
         tk.Label(grid_frame, text="Commercials Folder:", font=("Arial", 10, "bold")).grid(row=2, column=0, sticky="w", pady=10)
         self.var_comm_path = tk.StringVar(value=self.station.config['paths'].get('commercials', ''))
         tk.Entry(grid_frame, textvariable=self.var_comm_path, width=60).grid(row=2, column=1, padx=10)
         tk.Button(grid_frame, text="Browse...", command=lambda: self.browse_folder(self.var_comm_path)).grid(row=2, column=2)
+        
         tk.Label(grid_frame, text="Music Videos Folder:", font=("Arial", 10, "bold")).grid(row=3, column=0, sticky="w", pady=10)
         self.var_mv_path = tk.StringVar(value=self.station.config['paths'].get('music_videos', ''))
         tk.Entry(grid_frame, textvariable=self.var_mv_path, width=60).grid(row=3, column=1, padx=10)
         tk.Button(grid_frame, text="Browse...", command=lambda: self.browse_folder(self.var_mv_path)).grid(row=3, column=2)
+        
         tk.Label(frame, text="Note: Changing folders will trigger a full library rescan.", fg="gray").pack(anchor=tk.W, pady=(30, 5))
         tk.Button(frame, text="💾 SAVE CONFIGURATION", bg="#2196F3", fg="white", font=("Arial", 12, "bold"), height=2, command=self.save_paths).pack(anchor=tk.W, fill=tk.X)
 
@@ -1154,103 +926,24 @@ class StationManagerApp:
             self.root.update() 
             self.station.load_components()
             self.refresh_source_groups() 
+            
             self.lst_source_shows.delete(0, tk.END)
             for s in sorted(self.station.library.keys()): self.lst_source_shows.insert(tk.END, s)
+            
             self.lst_source_movies.delete(0, tk.END)
             if hasattr(self.station, 'movie_map'):
                 for m_name in sorted(self.station.movie_map.keys()): self.lst_source_movies.insert(tk.END, m_name)
+                
+            self.lst_source_mvs.delete(0, tk.END)
+            if hasattr(self.station, 'music_video_map'):
+                for mv_name in sorted(self.station.music_video_map.keys()): self.lst_source_mvs.insert(tk.END, mv_name)
+                
             self.series_list.delete(0, tk.END)
             for s in sorted(self.station.library.keys()): self.series_list.insert(tk.END, s)
+            
             messagebox.showinfo("Success", "Configuration saved and libraries rescanned!")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to rescan libraries: {e}")
-
-class IPCServer(http.server.HTTPServer):
-    def __init__(self, server_address, RequestHandlerClass, app_ref):
-        super().__init__(server_address, RequestHandlerClass)
-        self.app_ref = app_ref
-
-class IPCRequestHandler(http.server.BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass 
-        
-    def do_GET(self):
-        if self.path == '/skip':
-            self.server.app_ref.station.skip_current()
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(b"OK")
-        elif self.path == '/status':
-            meta = self.server.app_ref.station.current_meta
-            upcoming = self.server.app_ref.station.scheduler.get_upcoming_list()
-            data = {
-                "now_playing": {
-                    "show": meta['show'] if meta['show'] else "---",
-                    "title": meta['title'],
-                    "percent": round(meta['percent'], 1)
-                },
-                "upcoming": [
-                    {
-                        "show": item.get('show', 'COMMERCIALS') if item['type'] != 'break' else "COMMERCIALS",
-                        "title": item.get('display', f"{item.get('min')}s - {item.get('max')}s Block") if item['type'] == 'break' else item.get('display', 'Unknown')
-                    }
-                    for item in upcoming
-                ],
-                "last_update": time.time()
-            }
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps(data).encode('utf-8'))
-        elif self.path == '/sync':
-            self.server.app_ref.ipc_sync_channels()
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(b"OK")
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-    def do_POST(self):
-        if self.path == '/inject':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
-            try:
-                payload = json.loads(post_data.decode('utf-8'))
-                slot_data = payload.get("slot", {})
-                insert_next = payload.get("insert_next", True)
-                
-                # Perform injection
-                self.server.app_ref.station.scheduler.inject_slot(slot_data, insert_next)
-                
-                # Update UI elements from main thread safely (after injection the channel might have changed)
-                app = self.server.app_ref
-                app.root.after(0, lambda: app.refresh_channel_dropdown())
-                app.root.after(0, lambda: app.channel_var.set(app.station.scheduler.active_channel))
-                app.root.after(0, lambda: app.load_channel_data())
-                
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
-            except Exception as e:
-                print(f"Error handling POST /inject: {e}")
-                self.send_response(500)
-                self.end_headers()
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-def start_ipc_server(app_ref):
-    try:
-        server = IPCServer(('127.0.0.1', 8000), IPCRequestHandler, app_ref)
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        print("IPC Server started on port 8000")
-    except Exception as e:
-        print(f"Failed to start IPC Server: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
