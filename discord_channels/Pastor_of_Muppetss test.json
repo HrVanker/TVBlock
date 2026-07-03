@@ -1,0 +1,21 @@
+{
+    "settings": {
+        "commercial_frequency": 3,
+        "commercial_min_sec": 60,
+        "commercial_max_sec": 120
+    },
+    "schedule_block": [
+        {
+            "type": "anchor",
+            "count": 1,
+            "mode": "sequential",
+            "show": "Twin Peaks"
+        },
+        {
+            "type": "anchor",
+            "count": 1,
+            "mode": "sequential",
+            "show": "Batman - The Animated Series"
+        }
+    ]
+}

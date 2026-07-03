@@ -156,6 +156,12 @@ class TVStationService:
                 self.scheduler.inject_slot(data['slot'], insert_next)
             return jsonify({"status": "injected"}), 200
 
+        @app.route('/sync', methods=['POST'])
+        def sync_channels():
+            # Safely tell the main Tkinter UI thread to update itself!
+            self.gui.root.after(0, self.gui.sync_from_bot)
+            return jsonify({"status": "synced"}), 200
+
         # Run it on Port 8000 in a daemon thread so it closes when the app closes
         self.ipc_thread = threading.Thread(
             target=lambda: app.run(host='127.0.0.1', port=8000, debug=False, use_reloader=False), 
@@ -429,6 +435,26 @@ class StationManagerApp:
             messagebox.showinfo("Welcome!", "Welcome to your TV Station!\n\nIt looks like this is a fresh start. Please select your 'TV Shows Folder' in the settings below to begin.")
         
         self.update_ui_loop()
+
+    def sync_from_bot(self):
+        """Called automatically when the Discord bot publishes a new channel."""
+        try:
+            # 1. Re-read the newly exported JSON from the hard drive
+            with open(CONFIG_FILE, 'r') as f:
+                self.station.config = json.load(f)
+            
+            # 2. Refresh the UI dropdown menu to show the new channels
+            self.refresh_channel_dropdown()
+            
+            # 3. Hot-reload the engine just in case the actively playing channel was modified
+            if hasattr(self.station, 'scheduler'):
+                self.station.scheduler.config = self.station.config
+                self.station.scheduler.hot_reload()
+                self.load_channel_data()
+                
+            print("DEBUG: Successfully synced new channels from Discord Bot!")
+        except Exception as e:
+            print(f"DEBUG: Failed to sync from bot: {e}")
 
     def create_widgets(self):
         self.notebook = ttk.Notebook(self.root)

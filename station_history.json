@@ -482,6 +482,27 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-07-03 14:34:21.901157"
+        },
+        "Green Day - She [Live in Chicago] 1994.mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\Green Day - She [Live in Chicago] 1994.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 14:37:11.280752"
+        },
+        "Barracuda - Heart \uff5c The Midnight Special [ykvgo0XcKxg].mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\Barracuda - Heart \uff5c The Midnight Special [ykvgo0XcKxg].mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 15:08:43.493543"
+        },
+        "The Supremes \uff02You Can't Hurry Love\uff02 on The Ed Sullivan Show [Itn438i30hk].mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\The Supremes \uff02You Can't Hurry Love\uff02 on The Ed Sullivan Show [Itn438i30hk].mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 15:15:41.641043"
         }
     }
 }

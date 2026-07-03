@@ -61,7 +61,8 @@
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
-                    "group": "Star Trek Grp"
+                    "group": "Star Trek Grp",
+                    "resolved_show": "Star Trek Voyager"
                 },
                 {
                     "type": "anchor",
@@ -72,7 +73,7 @@
                 }
             ],
             "bookmarks": {
-                "Pete & Pete": 8,
+                "Pete & Pete": 11,
                 "Batman - The Animated Series": 7,
                 "Moonlighting": 5,
                 "Farscape": 4,
