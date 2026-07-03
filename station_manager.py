@@ -316,16 +316,29 @@ class TVStationService:
                         except: pass
 
                     temp_overlay = os.path.join(app_dir, "assets", "temp_overlay.png")
-                    self.gfx_engine.generate_transparent_bumper(upcoming_shows, comm_duration, output_path=temp_overlay, target_width=bg_width, target_height=bg_height)
-
-                    temp_overlay_ffmpeg = temp_overlay.replace("\\", "/").replace(":", "\\:")
-                    bumper_filter = f"lavfi=[movie=filename='{temp_overlay_ffmpeg}'[logo];[in][logo]overlay=0:0]"
+                    bgra_path = os.path.join(app_dir, "assets", "temp_overlay.bgra")
+                    
+                    # Capture the result tuple from the graphics engine
+                    bumper_result = self.gfx_engine.generate_transparent_bumper(upcoming_shows, comm_duration, output_path=temp_overlay, target_width=bg_width, target_height=bg_height)
+                    
+                    bumper_mode = "none"
+                    active_overlay = temp_overlay
+                    a_path = None
+                    
+                    # Determine which image to show based on what the Graphics Engine returned
+                    if isinstance(bumper_result, tuple):
+                        bumper_mode = bumper_result[0]
+                        if bumper_mode == "qa":
+                            active_overlay = bumper_result[1] # The Question image
+                            a_path = bumper_result[2]         # The Answer image
+                        else:
+                            active_overlay = bumper_result[1]
                     
                     try:
-                        img = Image.open(temp_overlay).convert("RGBA")
+                        # Load the correct image (avoids the stale image bug)
+                        img = Image.open(active_overlay).convert("RGBA")
                         r, g, b, a = img.split()
                         img_bgra = Image.merge("RGBA", (b, g, r, a))
-                        bgra_path = os.path.join(app_dir, "assets", "temp_overlay.bgra")
                         with open(bgra_path, "wb") as f: f.write(img_bgra.tobytes())
                         w, h = img.size
                         player.command("overlay-add", 1, 0, 0, bgra_path.replace("\\", "/"), 0, "bgra", w, h, w * 4)
@@ -333,19 +346,35 @@ class TVStationService:
 
                     bug_filter = self._get_random_bug_filter()
                     if bug_filter:
-                        # UNSILENCED: Let's see why the bug is crashing
                         try: player.command("vf", "add", f"@stationbug:{bug_filter}")
                         except Exception as e: print(f"DEBUG: Station Bug Filter Error (Bumper): {e}")
 
                     bumper_start_time = time.time()
-                    bumper_duration = 14  
+                    bumper_duration = 29
+                    swapped_to_answer = False
                     
                     while not getattr(player, 'idle_active', True) and self.running:
                         if self.skip_flag:
                             player.command("stop")
                             self.skip_flag = False
                             break
-                        if time.time() - bumper_start_time >= bumper_duration:
+                            
+                        elapsed = time.time() - bumper_start_time
+                        
+                        # Dynamically swap to the Answer image halfway through the bumper!
+                        if bumper_mode == "qa" and not swapped_to_answer and elapsed > (bumper_duration / 2):
+                            try:
+                                img_a = Image.open(a_path).convert("RGBA")
+                                r, g, b, a = img_a.split()
+                                img_bgra_a = Image.merge("RGBA", (b, g, r, a))
+                                with open(bgra_path, "wb") as f: f.write(img_bgra_a.tobytes())
+                                w, h = img_a.size
+                                # Overwriting overlay ID 1 causes a seamless swap on-screen
+                                player.command("overlay-add", 1, 0, 0, bgra_path.replace("\\", "/"), 0, "bgra", w, h, w * 4)
+                                swapped_to_answer = True
+                            except Exception as e: print(f"DEBUG: QA Swap Error: {e}")
+                            
+                        if elapsed >= bumper_duration:
                             player.command("stop")
                             break
                         time.sleep(0.1)

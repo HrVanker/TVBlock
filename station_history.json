@@ -96,7 +96,7 @@
             "path": "D:\\Media\\Music Videos\\Yes - I've Seen All Good People Live 1973 (Best Version).mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-27 04:08:01.163444"
+            "last_played": "2026-07-03 18:31:06.535756"
         },
         "The Adventures of Pete & Pete - 1x02 - Day of the Dot.mp4": {
             "show": "Pete & Pete",
@@ -552,6 +552,41 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-07-03 17:48:23.846761"
+        },
+        "The Adventures of Pete & Pete - 2x06 - Halloweenie.mp4": {
+            "show": "Pete & Pete",
+            "path": "D:\\Media\\Shows\\Pete & Pete\\Season 2\\The Adventures of Pete & Pete - 2x06 - Halloweenie.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 18:31:07.583747"
+        },
+        "Community - 1x02 - Spanish 101.mkv": {
+            "show": "Community",
+            "path": "D:\\Media\\Shows\\Community\\Season 1\\Community - 1x02 - Spanish 101.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 18:31:09.718618"
+        },
+        "The Simpsons - 3x15 - Homer Alone.mkv": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 3\\The Simpsons - 3x15 - Homer Alone.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 18:31:22.622068"
+        },
+        "The Simpsons - 9x22 - Trash of the Titans.mkv": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 9\\The Simpsons - 9x22 - Trash of the Titans.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 18:31:24.566266"
+        },
+        "Batman The Animated Series - 1x09 - Pretty Poison.mkv": {
+            "show": "Batman - The Animated Series",
+            "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x09 - Pretty Poison.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 18:31:26.904210"
         }
     }
 }
