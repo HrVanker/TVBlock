@@ -6,7 +6,7 @@
         "music_videos": "D:\\Media\\Music Videos"
     },
     "blacklist": [],
-    "active_channel": " vbvb",
+    "active_channel": "Default Channel",
     "channels": {
         "Default Channel": {
             "settings": {
@@ -61,8 +61,7 @@
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
-                    "group": "Star Trek Grp",
-                    "resolved_show": "Star Trek Voyager"
+                    "group": "Star Trek Grp"
                 },
                 {
                     "type": "anchor",

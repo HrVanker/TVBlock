@@ -439,7 +439,7 @@
             "path": "D:\\Media\\Music Videos\\Spanish Moon - Little Feat [nVJf6LhPB7Q].mp4",
             "status": "watched",
             "percent_watched": 100,
-            "last_played": "2026-06-29 02:02:39.436148"
+            "last_played": "2026-07-03 14:32:13.101622"
         },
         "Frank Zappa - Peaches en Regalia.mp4": {
             "show": "Music Video",
@@ -475,6 +475,13 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-07-03 12:49:29.748865"
+        },
+        "Andromeda - 1x01 - Under the Night (1).mp4": {
+            "show": "Andromeda (2000)",
+            "path": "D:\\Media\\Shows\\Andromeda (2000)\\Season 1\\Andromeda - 1x01 - Under the Night (1).mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 14:34:21.901157"
         }
     }
 }

@@ -752,6 +752,7 @@ class StationManagerApp:
         new_channel = self.channel_var.get()
         self.station.config["active_channel"] = new_channel
         self.station.save_config()
+        self.station.scheduler.hot_reload()
         self.load_channel_data()
 
     def load_channel_data(self):
@@ -877,6 +878,13 @@ class StationManagerApp:
         chan_data["settings"]["commercial_frequency"] = self.var_comm_freq.get()
         chan_data["settings"]["commercial_min_sec"] = self.var_comm_min.get()
         chan_data["settings"]["commercial_max_sec"] = self.var_comm_max.get()
+
+        # FIX: Ensure the config's active channel matches the one we just saved
+        self.station.config["active_channel"] = active
+        self.station.save_config()
+        
+        # FIX: Hot reload the existing engine instead of destroying it!
+  #      self.station.scheduler.hot_reload()
         
         self.station.save_config()
         # HOT RELOAD ENGAGED!

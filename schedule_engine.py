@@ -41,12 +41,22 @@ class ScheduleEngine:
 
     # --- NEW: HOT RELOAD ---
     def hot_reload(self):
-        """Reloads config from disk while preserving playback trackers."""
-        self.config = self._load_json(self.config_file)
+        """Reloads config from disk while preserving playback trackers, unless the channel changed."""
+        new_config = self._load_json(self.config_file)
+        
+        # 1. Check if we are swapping to a completely new channel
+        new_active = new_config.get("active_channel", self.active_channel)
+        if new_active != self.active_channel:
+            self.active_channel = new_active
+            self.block_index = 0
+            self.slot_play_count = 0
+            self.items_since_break = 0
+            
+        self.config = new_config
         self.rotation_groups = self.config.get("rotation_groups", {})
         self._resolve_all_rotations()
         
-        # Safety bound check in case they deleted slots making the block shorter
+        # 2. Safety bounds check in case the user deleted slots from the current channel
         new_block = self._get_channel_data().get("schedule_block", [])
         if self.block_index >= len(new_block) and len(new_block) > 0:
             self.block_index = 0
