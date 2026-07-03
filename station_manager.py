@@ -8,6 +8,8 @@ import json
 import os
 import sys
 import threading
+import logging
+from flask import Flask, jsonify, request
 import time
 import datetime
 
@@ -120,6 +122,46 @@ class TVStationService:
         self.current_meta = {"title": "Offline", "show": "", "percent": 0}
         self.gfx_engine = GraphicsEngine()
         self.load_components()
+        self.start_ipc_server()
+
+    def start_ipc_server(self):
+        """Runs a background API server so the Discord bot can control the station."""
+        app = Flask(__name__)
+        
+        # Silence Flask's default terminal spam so it doesn't mess up our logs
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)
+
+        @app.route('/status', methods=['GET'])
+        def get_status():
+            if not self.running:
+                return jsonify({"now_playing": {"title": "Offline"}}), 200
+                
+            upcoming = self.scheduler.get_upcoming_list(limit=5) if self.scheduler else []
+            return jsonify({
+                "now_playing": self.current_meta,
+                "upcoming": upcoming
+            }), 200
+
+        @app.route('/skip', methods=['GET'])
+        def skip_item():
+            self.skip_current()
+            return jsonify({"status": "skipped"}), 200
+
+        @app.route('/inject', methods=['POST'])
+        def inject_item():
+            data = request.json
+            if self.scheduler and 'slot' in data:
+                insert_next = data.get('insert_next', True)
+                self.scheduler.inject_slot(data['slot'], insert_next)
+            return jsonify({"status": "injected"}), 200
+
+        # Run it on Port 8000 in a daemon thread so it closes when the app closes
+        self.ipc_thread = threading.Thread(
+            target=lambda: app.run(host='127.0.0.1', port=8000, debug=False, use_reloader=False), 
+            daemon=True
+        )
+        self.ipc_thread.start()
 
     def load_components(self):
         if not os.path.exists(CONFIG_FILE):
@@ -305,65 +347,43 @@ class TVStationService:
                     try: player.command("vf", "remove", "@stationbug")
                     except: pass
 
-                # --- PLAY CHUNK ---
+                # --- PLAY CHUNK (Shows or Commercials) ---
                 for filepath in current_playlist:
                     if not self.running: break
                     player.play(filepath)
                     time.sleep(0.5)
                     
-                    mid_bug_shown = False
-                    end_bug_shown = False
-                    remove_bug_at_time = 0
-                    bug_display_duration = 15 
-                    
+                    # --- STREAMLINED MONITOR LOOP ---
                     while not getattr(player, 'idle_active', True) and self.running:
+                        
+                        # 1. Check for manual user skip
                         if self.skip_flag:
                             duration = player.duration if player.duration else 0
                             curr_time = player.time_pos if player.time_pos else 0
                             pct = (curr_time / duration) * 100 if duration > 0 else 0
+                            
+                            # Log partial watch if skipped
                             if current_content['type'] == 'video' and pct > 5:
                                 self.update_history(current_content['show'], current_content['path'], "partial", pct)
+                            
                             player.command("stop")
                             self.skip_flag = False
                             break 
                         
+                        # 2. Update GUI Progress Bar
                         duration = player.duration if player.duration else 0
                         if duration > 0:
                             curr_time = player.time_pos if player.time_pos else 0
                             self.current_meta["percent"] = (curr_time / duration) * 100
-
-                            if current_content['type'] == 'video':
-                                if remove_bug_at_time > 0 and time.time() >= remove_bug_at_time:
-                                    try: player.command("vf", "remove", "@stationbug")
-                                    except: pass
-                                    remove_bug_at_time = 0
-
-                                if not mid_bug_shown and curr_time >= (duration / 2):
-                                    bug_filter = self._get_random_bug_filter()
-                                    if bug_filter:
-                                        # UNSILENCED: Let's see why the bug is crashing
-                                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
-                                        except Exception as e: print(f"DEBUG: Station Bug Filter Error (Mid): {e}")
-                                        remove_bug_at_time = time.time() + bug_display_duration
-                                    mid_bug_shown = True
-
-                                if not end_bug_shown and curr_time >= (duration - 60):
-                                    bug_filter = self._get_random_bug_filter()
-                                    if bug_filter:
-                                        # UNSILENCED: Let's see why the bug is crashing
-                                        try: player.command("vf", "add", f"@stationbug:{bug_filter}")
-                                        except Exception as e: print(f"DEBUG: Station Bug Filter Error (End): {e}")
-                                        remove_bug_at_time = time.time() + bug_display_duration
-                                    end_bug_shown = True
+                        
                         time.sleep(0.1)
 
+                    # 3. Log completed watch
                     if current_content['type'] == 'video' and not self.skip_flag and self.running:
                         self.update_history(current_content['show'], current_content['path'], "watched", 100)
 
-                    try: player.command("vf", "remove", "@stationbug")
-                    except: pass
-
-        except Exception as e: print(f"DEBUG: Broadcast Loop Terminated Safely.")
+        except Exception as e:
+            print(f"DEBUG: Broadcast Loop Terminated Safely.")
         finally:
             if player:
                 try: player.terminate()

@@ -301,3 +301,18 @@ class ScheduleEngine:
             upcoming.append((item.get("show", "Unknown"), dur))
             
         return upcoming
+
+    def inject_slot(self, slot_data, insert_next=True):
+        """Called by the IPC server to inject a Discord suggestion into the live schedule."""
+        channel_data = self.config.get("channels", {}).get(self.active_channel, {})
+        block = channel_data.get("schedule_block", [])
+        
+        if insert_next:
+            # Insert immediately after the currently playing slot
+            block.insert(self.block_index, slot_data)
+        else:
+            # Add to the very end of the block
+            block.append(slot_data)
+            
+        self._save_config()
+        self.hot_reload()

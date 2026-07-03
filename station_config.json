@@ -5,203 +5,13 @@
         "commercials": "D:\\Media\\Commercials",
         "music_videos": "D:\\Media\\Music Videos"
     },
-    "rotation_groups": {
-        "90s_Kids": [
-            "Pete & Pete",
-            "Rocko's Modern Life"
-        ],
-        "Star_Trek": [
-            "Star Trek Deep Space Nine",
-            "Star Trek The Next Generation",
-            "Star Trek Voyager"
-        ],
-        "Comedy": [
-            "Arrested Development",
-            "South Park",
-            "The Kids in the Hall"
-        ]
-    },
-    "blacklist": [
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x01 - No Pain, No Gain.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x02 - Who Gives a Buck.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x04 - Bedfellows.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x05 - Jet Scream.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x06 - Dirty Dog.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x07 - Keeping Up With the Bigheads.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x08 - Skid Marks.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x09 - Power Trip.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x10 - To Heck and Back.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x01 - Simpsons Roasting on an Open Fire.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x02 - Bart the Genius.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x03 - Homer's Odyssey.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x04 - There's No Disgrace Like Home.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x05 - Bart the General.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x06 - Moaning Lisa.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x07 - The Call of the Simpsons.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x08 - The Telltale Head.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x09 - Life on the Fast Lane.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x10 - Homer's Night Out.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x11 - The Crepes of Wrath.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x12 - Krusty Gets Busted.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 1\\The Simpsons - 1x13 - Some Enchanted Evening.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x01 - Bart Gets an F.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x02 - Simpson and Delilah.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x03 - Treehouse of Horror.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x04 - Two Cars in Every Garage and Three Eyes on Every Fish.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x05 - Dancin' Homer.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x06 - Dead Putting Society.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x07 - Bart vs. Thanksgiving.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x08 - Bart the Daredevil.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x09 - Itchy & Scratchy & Marge.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x10 - Bart Gets Hit by a Car.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x11 - One Fish, Two Fish, Blowfish, Blue Fish.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x12 - The Way We Was.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x13 - Homer vs. Lisa and the 8th Commandment.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x14 - Principal Charming.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x15 - Oh Brother, Where Art Thou.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x16 - Bart's Dog Gets an F.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x17 - Old Money.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x18 - Brush with Greatness.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x19 - Lisa's Substitute.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x20 - The War of the Simpsons.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x21 - Three Men and a Comic Book.avi",
-        "D:\\Media\\Shows\\The Simpsons\\Season 2\\The Simpsons - 2x22 - Blood Feud.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x01 - No Pain, No Gain.mp4",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x02 - Who Gives a Buck.mp4",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x11 - The Good, the Bad, and the Wallaby.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x12 - Trash-O-Madness.avi",
-        "D:\\Media\\Shows\\Rocko's Modern Life\\Rocko's Modern Life Season 1\\Rocko's Modern Life - 1x13 - Spitballs.avi"
-    ],
+    "blacklist": [],
+    "active_channel": " vbvb",
     "channels": {
         "Default Channel": {
             "settings": {
-                "enable_movies": false,
-                "movie_frequency": 20,
-                "commercial_frequency": 3,
-                "commercial_min_sec": 123,
-                "commercial_max_sec": 436
-            },
-            "schedule_block": [
-                {
-                    "type": "music_video",
-                    "count": 1,
-                    "mode": "random",
-                    "sync_global": false
-                },
-                {
-                    "type": "rotate",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "group": "Star_Trek",
-                    "resolved_show": "Star Trek The Next Generation"
-                },
-                {
-                    "type": "anchor",
-                    "count": 2,
-                    "mode": "random",
-                    "sync_global": false,
-                    "show": "The Simpsons"
-                },
-                {
-                    "type": "anchor",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "show": "Batman - The Animated Series"
-                },
-                {
-                    "type": "rotate",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "group": "90s_Kids",
-                    "resolved_show": "Pete & Pete"
-                },
-                {
-                    "type": "movie",
-                    "count": 1,
-                    "mode": "random",
-                    "sync_global": false,
-                    "resolved_path": "D:\\Media\\Movies\\Terminator 2 Judgment Day (Director's Cut) - 1991\\Terminator 2 Judgment Day (Director's Cut) - 1991.mp4",
-                    "resolved_show": "Terminator 2 Judgment Day"
-                },
-                {
-                    "type": "rotate",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "group": "Comedy",
-                    "resolved_show": "Arrested Development"
-                },
-                {
-                    "type": "anchor",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "show": "The X-Files"
-                },
-                {
-                    "type": "anchor",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "show": "Twin Peaks"
-                }
-            ],
-            "bookmarks": {
-                "Star Trek The Next Generation": 43,
-                "Star Trek Deep Space Nine": 36,
-                "The Simpsons": 88,
-                "Batman - The Animated Series": 42,
-                "Rocko's Modern Life": 17,
-                "The Kids in the Hall": 3,
-                "The X-Files": 15,
-                "Twin Peaks": 15,
-                "Pete & Pete": 12,
-                "South Park": 7,
-                "Arrested Development": 5
-            }
-        },
-        "test": {
-            "settings": {
                 "commercial_frequency": 3,
                 "commercial_min_sec": 60,
-                "commercial_max_sec": 120
-            },
-            "schedule_block": [
-                {
-                    "type": "anchor",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "show": "Moonlighting"
-                },
-                {
-                    "type": "anchor",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "show": "The Simpsons"
-                },
-                {
-                    "type": "anchor",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "show": "Pete & Pete"
-                }
-            ],
-            "bookmarks": {
-                "Moonlighting": 15,
-                "The Simpsons": 9,
-                "Pete & Pete": 7
-            }
-        },
-        "nw": {
-            "settings": {
-                "commercial_frequency": 3,
-                "commercial_min_sec": 120,
                 "commercial_max_sec": 240
             },
             "schedule_block": [
@@ -227,22 +37,7 @@
                 },
                 {
                     "type": "anchor",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": false,
-                    "show": "Farscape"
-                },
-                {
-                    "type": "rotate",
-                    "count": 1,
-                    "mode": "sequential",
-                    "sync_global": true,
-                    "group": "Star_Trek",
-                    "resolved_show": "Star Trek Deep Space Nine"
-                },
-                {
-                    "type": "anchor",
-                    "count": 1,
+                    "count": 2,
                     "mode": "random_no_reruns",
                     "sync_global": false,
                     "show": "The Simpsons"
@@ -252,31 +47,78 @@
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
-                    "show": "The X-Files"
+                    "show": "Moonlighting"
                 },
                 {
                     "type": "anchor",
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
-                    "show": "Moonlighting"
+                    "show": "Farscape"
+                },
+                {
+                    "type": "rotate",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "group": "Star Trek Grp",
+                    "resolved_show": "Star Trek Voyager"
+                },
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "The X-Files"
                 }
             ],
             "bookmarks": {
-                "For Alien Eyes Only": 1,
-                "Farscape Season 1, 2, 3 & 4 + Extras BDRip TSV": 1,
-                "Batman - The Animated Series": 79,
-                "Star Trek Deep Space Nine": 131,
-                "Moonlighting": 11,
-                "The Simpsons": 1,
-                "Pete & Pete": 27,
-                "30 Rock (2006)": 1,
-                "Farscape": 11,
-                "The X-Files": 10,
-                "Star Trek The Next Generation": 75,
-                "Star Trek Voyager": 8
+                "Pete & Pete": 8,
+                "Batman - The Animated Series": 7,
+                "Moonlighting": 5,
+                "Farscape": 4,
+                "Star Trek The Next Generation": 2,
+                "The X-Files": 4,
+                "Star Trek Deep Space Nine": 2
             }
+        },
+        " vbvb": {
+            "settings": {
+                "commercial_frequency": 3,
+                "commercial_min_sec": 60,
+                "commercial_max_sec": 120
+            },
+            "schedule_block": [
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "Andromeda (2000)"
+                },
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "Batman - The Animated Series"
+                },
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "Community"
+                }
+            ],
+            "bookmarks": {}
         }
     },
-    "active_channel": "nw"
+    "rotation_groups": {
+        "Star Trek Grp": [
+            "Star Trek Deep Space Nine",
+            "Star Trek The Next Generation",
+            "Star Trek Voyager"
+        ]
+    }
 }
