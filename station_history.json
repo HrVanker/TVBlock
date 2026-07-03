@@ -503,6 +503,55 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-07-03 15:15:41.641043"
+        },
+        "Ben Folds - Sleazy (Ke$ha Cover).mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\Ben Folds - Sleazy (Ke$ha Cover).mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 15:37:01.096339"
+        },
+        "THE WHO Eminence Front (Toronto 17th dec 1982) [5HTVMh7fur4].mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\THE WHO Eminence Front (Toronto 17th dec 1982) [5HTVMh7fur4].mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 15:49:08.567428"
+        },
+        "The Adventures of Pete & Pete - 2x05 - Time Tunnel.mp4": {
+            "show": "Pete & Pete",
+            "path": "D:\\Media\\Shows\\Pete & Pete\\Season 2\\The Adventures of Pete & Pete - 2x05 - Time Tunnel.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 16:13:31.796369"
+        },
+        "Community - 1x01 - Pilot.mkv": {
+            "show": "Community",
+            "path": "D:\\Media\\Shows\\Community\\Season 1\\Community - 1x01 - Pilot.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 16:38:58.365226"
+        },
+        "The Simpsons - 4x13 - Selma's Choice.mkv": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 4\\The Simpsons - 4x13 - Selma's Choice.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 17:03:19.831226"
+        },
+        "The Simpsons - 6x19 - Lisa's Wedding.mkv": {
+            "show": "The Simpsons",
+            "path": "D:\\Media\\Shows\\The Simpsons\\Season 6\\The Simpsons - 6x19 - Lisa's Wedding.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 17:25:55.431678"
+        },
+        "Batman The Animated Series - 1x08 - The Cat and the Claw (2).mkv": {
+            "show": "Batman - The Animated Series",
+            "path": "D:\\Media\\Shows\\Batman - The Animated Series\\Season 1\\Batman The Animated Series - 1x08 - The Cat and the Claw (2).mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 17:48:23.846761"
         }
     }
 }

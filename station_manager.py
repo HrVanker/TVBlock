@@ -158,7 +158,10 @@ class TVStationService:
 
         @app.route('/sync', methods=['POST'])
         def sync_channels():
-            # Safely tell the main Tkinter UI thread to update itself!
+            # 1. Merge the newly exported JSON files into the master config
+            self.gui.import_discord_channels_to_config()
+            
+            # 2. Safely tell the main Tkinter UI thread to update itself!
             self.gui.root.after(0, self.gui.sync_from_bot)
             return jsonify({"status": "synced"}), 200
 
@@ -455,6 +458,44 @@ class StationManagerApp:
             print("DEBUG: Successfully synced new channels from Discord Bot!")
         except Exception as e:
             print(f"DEBUG: Failed to sync from bot: {e}")
+
+    def import_discord_channels_to_config(self):
+        """Scans the discord_channels folder and merges them into the main config."""
+        discord_dir = os.path.join(app_dir, "discord_channels")
+        if not os.path.exists(discord_dir): 
+            return
+            
+        changed = False
+        for filename in os.listdir(discord_dir):
+            if filename.endswith(".json"):
+                channel_name = filename.replace(".json", "")
+                file_path = os.path.join(discord_dir, filename)
+                try:
+                    with open(file_path, 'r') as f:
+                        channel_data = json.load(f)
+                        
+                    if "channels" not in self.station.config:
+                        self.station.config["channels"] = {}
+                        
+                    # Inject or update the channel in the master config
+                    if channel_name not in self.station.config["channels"]:
+                        self.station.config["channels"][channel_name] = {
+                            "settings": channel_data.get("settings", {}),
+                            "schedule_block": channel_data.get("schedule_block", []),
+                            "bookmarks": {} 
+                        }
+                    else:
+                        # If it exists, update the schedule but preserve bookmarks
+                        self.station.config["channels"][channel_name]["settings"] = channel_data.get("settings", {})
+                        self.station.config["channels"][channel_name]["schedule_block"] = channel_data.get("schedule_block", [])
+                        
+                    changed = True
+                except Exception as e:
+                    print(f"DEBUG: Failed to import Discord channel {filename}: {e}")
+                    
+        if changed:
+            self.station.save_config()
+            print("DEBUG: Merged Discord channels into master config!")
 
     def create_widgets(self):
         self.notebook = ttk.Notebook(self.root)

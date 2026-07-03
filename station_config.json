@@ -33,7 +33,7 @@
                     "count": 1,
                     "mode": "sequential",
                     "sync_global": false,
-                    "show": "Batman - The Animated Series"
+                    "show": "Community"
                 },
                 {
                     "type": "anchor",
@@ -41,6 +41,13 @@
                     "mode": "random_no_reruns",
                     "sync_global": false,
                     "show": "The Simpsons"
+                },
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "sync_global": false,
+                    "show": "Batman - The Animated Series"
                 },
                 {
                     "type": "anchor",
@@ -73,13 +80,14 @@
                 }
             ],
             "bookmarks": {
-                "Pete & Pete": 11,
-                "Batman - The Animated Series": 7,
-                "Moonlighting": 5,
+                "Pete & Pete": 12,
+                "Batman - The Animated Series": 8,
+                "Moonlighting": 6,
                 "Farscape": 4,
                 "Star Trek The Next Generation": 2,
                 "The X-Files": 4,
-                "Star Trek Deep Space Nine": 2
+                "Star Trek Deep Space Nine": 2,
+                "Community": 1
             }
         },
         " vbvb": {
@@ -112,6 +120,28 @@
                 }
             ],
             "bookmarks": {}
+        },
+        "Pastor_of_Muppetss test": {
+            "settings": {
+                "commercial_frequency": 3,
+                "commercial_min_sec": 60,
+                "commercial_max_sec": 120
+            },
+            "schedule_block": [
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "show": "Twin Peaks"
+                },
+                {
+                    "type": "anchor",
+                    "count": 1,
+                    "mode": "sequential",
+                    "show": "Batman - The Animated Series"
+                }
+            ],
+            "bookmarks": {}
         }
     },
     "rotation_groups": {
@@ -119,6 +149,10 @@
             "Star Trek Deep Space Nine",
             "Star Trek The Next Generation",
             "Star Trek Voyager"
+        ],
+        "NickToons": [
+            "Pete & Pete",
+            "Rocko's Modern Life"
         ]
     }
 }
