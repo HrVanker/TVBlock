@@ -3,6 +3,10 @@ import random
 from PIL import Image, ImageDraw, ImageFont
 import datetime
 import time
+try:
+    import zoneinfo
+except ImportError:
+    pass
 
 class GraphicsEngine:
     def __init__(self, font_path="assets/MonoPolz.ttf", resolution=(1920, 1080), music_font="assets/vcr_mono.ttf"):
@@ -36,64 +40,75 @@ class GraphicsEngine:
         header_text = "WE'LL BE RIGHT BACK"
         draw.text((SAFE_X, SAFE_Y), header_text, font=header_font, fill=(255, 240, 120, 255), stroke_width=4, stroke_fill=(0,0,0,255))
         
-        # 4. Calculate Times
-        current_time = datetime.datetime.now()
-        start_time = current_time + datetime.timedelta(seconds=commercial_duration_sec)
-        is_dst = time.localtime().tm_isdst > 0
-        tz_code = "PDT" if is_dst else "PST"
+        # 4. Calculate Times (Bulletproof Timezone Logic)
+        current_time_utc = datetime.datetime.now(datetime.timezone.utc)
+        start_time_utc = current_time_utc + datetime.timedelta(seconds=commercial_duration_sec)
 
-        # 5. Draw "UP NEXT:"
+        # Try to use precise DST-aware zone libraries, fallback to manual offsets if needed
+        try:
+            tz_et = zoneinfo.ZoneInfo("America/New_York")
+            tz_pt = zoneinfo.ZoneInfo("America/Los_Angeles")
+            tz_uk = zoneinfo.ZoneInfo("Europe/London")
+        except Exception:
+            is_dst = time.localtime().tm_isdst > 0
+            tz_et = datetime.timezone(datetime.timedelta(hours=-4 if is_dst else -5))
+            tz_pt = datetime.timezone(datetime.timedelta(hours=-7 if is_dst else -8))
+            tz_uk = datetime.timezone(datetime.timedelta(hours=1 if is_dst else 0))
+
+        # 5. Draw "COMING UP NEXT:"
         y_offset = SAFE_Y + (line_height * 1.1)
         draw.text((SAFE_X*1.5, y_offset), "COMING UP NEXT:", font=up_font, fill=(255, 240, 120, 255),stroke_width=4, stroke_fill=(0,0,0,255))
         y_offset += (line_height * 1.1)
 
-        # 6. Draw Shows
+        # 6. Draw Shows (Stacked Layout for Timezones)
         drawn_count = 0
         for item_data in upcoming_shows:
             if drawn_count >= len(upcoming_shows): break
             
-            # Unpack data (handle both old 2-tuple and new 3-tuple formats for safety)
             show_name = item_data[0]
             duration = item_data[1]
             s_type = item_data[2] if len(item_data) > 2 else "video"
 
             # SKIP MUSIC VIDEOS: Don't draw them, but add their time to start_time
             if s_type == "music_video":
-                start_time += datetime.timedelta(seconds=duration)
+                start_time_utc += datetime.timedelta(seconds=duration)
                 continue
 
-            time_str = start_time.strftime("%I:%M %p").lstrip("0")
-            if len(time_str.split(':')[0]) == 1:
-                time_str = " " + time_str
-            time_str += f" {tz_code}"
+            # Convert UTC to local times
+            time_et = start_time_utc.astimezone(tz_et)
+            time_pt = start_time_utc.astimezone(tz_pt)
+            time_uk = start_time_utc.astimezone(tz_uk)
 
-            time_width = int(draw.textlength(time_str + " | ", font=time_font))
-            gap_padding = int(target_width * 0.02)
-            title_x = SAFE_X * 1.75 + time_width + gap_padding
+            # Format times (e.g., "8:00 ET")
+            t_et = time_et.strftime("%I:%M").lstrip("0") + " ET"
+            t_pt = time_pt.strftime("%I:%M").lstrip("0") + " PT"
+            t_uk = time_uk.strftime("%I:%M").lstrip("0") + " UK"
 
-            draw.text((SAFE_X*1.75, y_offset), time_str + " | ", font=time_font, fill=(255, 210, 50, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+            time_str = f"{t_et} \u2022 {t_pt} \u2022 {t_uk}"
 
-            # TITLE WRAPPING LOGIC
-            max_line_chars = 24
+            # DRAW TIMES (Line 1)
+            draw.text((SAFE_X*1.75, y_offset), time_str, font=time_font, fill=(255, 210, 50, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+            y_offset += int(time_size * 1.3) 
+
+            # DRAW TITLE (Line 2)
+            max_line_chars = 30 # Increased since title has the whole row to itself now
             if len(show_name) <= max_line_chars:
-                draw.text((title_x, y_offset), show_name, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+                draw.text((SAFE_X*1.75, y_offset), show_name, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
             else:
-                # Find the space character closest to the 24th character
+                # Word Wrap Logic
                 split_idx = show_name.rfind(' ', 0, max_line_chars + 1)
-                if split_idx == -1: split_idx = max_line_chars # Fallback if no space
+                if split_idx == -1: split_idx = max_line_chars 
 
                 line1 = show_name[:split_idx].strip()
                 line2 = show_name[split_idx:].strip()
+                if len(line2) > 35: line2 = line2[:32] + "..."
 
-                # Limit line 2 to prevent excessive length if needed (optional)
-                if len(line2) > 30: line2 = line2[:27] + "..."
+                draw.text((SAFE_X*1.75, y_offset), line1, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
+                y_offset += int(line_height * 0.6) 
+                draw.text((SAFE_X*1.75, y_offset), line2, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
 
-                draw.text((title_x, y_offset), line1, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
-                y_offset += int(line_height * 0.6) # Move down for the wrapped line
-                draw.text((title_x, y_offset), line2, font=show_font, fill=(246, 141, 15, 255),stroke_width=4, stroke_fill=(0,0,0,255))
-
-            start_time += datetime.timedelta(seconds=duration)
-            y_offset += (line_height * 0.8)
+            start_time_utc += datetime.timedelta(seconds=duration)
+            y_offset += (line_height * 1.1) 
             drawn_count += 1
 
 

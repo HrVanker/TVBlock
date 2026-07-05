@@ -587,6 +587,27 @@
             "status": "watched",
             "percent_watched": 100,
             "last_played": "2026-07-03 18:31:26.904210"
+        },
+        "Blondie - One Way Or Another (1978) [REMASTERED HD] \u2022 TopPop.mp4": {
+            "show": "Music Video",
+            "path": "D:\\Media\\Music Videos\\Blondie - One Way Or Another (1978) [REMASTERED HD] \u2022 TopPop.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 20:23:35.416720"
+        },
+        "The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4": {
+            "show": "Pete & Pete",
+            "path": "D:\\Media\\Shows\\Pete & Pete\\Season 2\\The Adventures of Pete & Pete - 2x07 - Inspector 34.mp4",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 20:23:36.242619"
+        },
+        "Community - 1x03 - Introduction to Film.mkv": {
+            "show": "Community",
+            "path": "D:\\Media\\Shows\\Community\\Season 1\\Community - 1x03 - Introduction to Film.mkv",
+            "status": "watched",
+            "percent_watched": 100,
+            "last_played": "2026-07-03 20:23:37.561427"
         }
     }
 }
